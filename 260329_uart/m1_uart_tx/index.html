@@ -18,6 +18,7 @@
   --amber: #f0bf61;
   --cyan: #69dce9;
   --slate: #8fa3b8;
+  --teal: #43d0bd;
 }
 * { box-sizing: border-box; }
 body {
@@ -184,7 +185,7 @@ footer {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span>
+      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span><b>→</b><span>m06 sequence 분리</span>
     </div>
 
     <div class="grid">
@@ -256,6 +257,18 @@ footer {
           <span>monitor가 actual queue에 push</span>
           <span>scoreboard가 순서대로 pop</span>
           <span>sequence 역할이 필요한 이유 확인</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--teal)" href="m06_sequence/stage_flow_demo.html">
+        <span class="badge">m06</span>
+        <h2>m06_sequence</h2>
+        <p>sequence가 stimulus를 준비하고 driver는 queue에서 받은 byte만 DUT에 구동합니다.</p>
+        <div class="points">
+          <span>sequence가 driver queue에 push</span>
+          <span>driver의 payload 직접 참조 제거</span>
+          <span>expected ownership의 다음 과제 확인</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>

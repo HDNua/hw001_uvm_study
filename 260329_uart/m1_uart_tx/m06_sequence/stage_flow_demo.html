@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m06_sequence Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m06_sequence",
+  headline: "stimulus 생성을 sequence task로 분리한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m05_queue 대비: driver가 payload를 직접 읽지 않고 sequence가 준비한 queue에서 받는다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m05", href: "../m05_queue/stage_flow_demo.html" }
+  ],
+  focus: [
+    "sequence는 보낼 payload를 r_DrvQ에 push해 stimulus ownership을 갖는다.",
+    "driver는 payload의 출처를 모르고 r_DrvQ에서 꺼낸 byte만 DUT에 구동한다.",
+    "scoreboard는 아직 payload를 직접 참조하므로 expected ownership 분리가 다음 과제다."
+  ],
+  nodes: [
+    { id: "test", title: "test payload", text: "테스트 데이터 선택", x: 3, y: 18, w: 14, h: 13, tone: "violet" },
+    { id: "sequence", title: "sequence task", text: "payload를 stimulus queue에 적재", x: 21, y: 18, w: 16, h: 13, tone: "amber" },
+    { id: "drvq", title: "r_DrvQ", text: "sequence → driver handoff", x: 42, y: 18, w: 14, h: 13, tone: "slate" },
+    { id: "driver", title: "driver task", text: "queue에서 pop해 DUT 구동", x: 62, y: 18, w: 14, h: 13, tone: "rose" },
+    { id: "dut", title: "UART_Tx DUT", text: "serial output 생성", x: 82, y: 18, w: 14, h: 13, tone: "cyan" },
+    { id: "monitor", title: "monitor task", text: "actual byte 복원", x: 77, y: 58, w: 15, h: 13, tone: "green" },
+    { id: "monq", title: "r_MonQ", text: "actual byte를 순서대로 보관", x: 57, y: 58, w: 15, h: 13, tone: "slate" },
+    { id: "scoreboard", title: "scoreboard task", text: "actual과 expected 비교", x: 34, y: 58, w: 17, h: 13, tone: "green" },
+    { id: "expected", title: "expected data", text: "payload에서 직접 생성", x: 10, y: 58, w: 17, h: 13, tone: "amber" }
+  ],
+  wires: [
+    { id: "test_sequence", from: "test", to: "sequence" },
+    { id: "sequence_drvq", from: "sequence", to: "drvq" },
+    { id: "drvq_driver", from: "drvq", to: "driver" },
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "dut_monitor", from: "dut", to: "monitor" },
+    { id: "monitor_monq", from: "monitor", to: "monq" },
+    { id: "monq_scoreboard", from: "monq", to: "scoreboard" },
+    { id: "test_expected", from: "test", to: "expected" },
+    { id: "expected_scoreboard", from: "expected", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "sequence 적재",
+      body: "sequence는 payload를 순회하며 driver queue에 stimulus를 준비한다.",
+      activeNodes: ["test", "sequence", "drvq"],
+      activeWires: ["test_sequence", "sequence_drvq"],
+      code: "r_DrvQ.push_back(r_Payload[r_ByteIdx]);",
+      packetWire: "sequence_drvq",
+      packet: "48"
+    },
+    {
+      title: "driver pull",
+      body: "driver는 payload를 직접 보지 않고 queue에서 꺼낸 byte로 DUT를 구동한다.",
+      activeNodes: ["drvq", "driver", "dut"],
+      activeWires: ["drvq_driver", "driver_dut"],
+      code: "r_Data = r_DrvQ.pop_front();\nr_TxData <= r_Data;",
+      packetWire: "drvq_driver",
+      packet: "48"
+    },
+    {
+      title: "actual queue 경로",
+      body: "monitor와 scoreboard 사이의 actual queue handoff는 m05 구조를 유지한다.",
+      activeNodes: ["dut", "monitor", "monq", "scoreboard"],
+      activeWires: ["dut_monitor", "monitor_monq", "monq_scoreboard"],
+      code: "r_MonQ.push_back(r_Captured);\nr_Actual = r_MonQ.pop_front();",
+      packetWire: "monitor_monq",
+      packet: "48"
+    },
+    {
+      title: "expected 경로 한계",
+      body: "scoreboard는 여전히 test payload를 직접 참조해 expected queue를 만든다.",
+      activeNodes: ["test", "expected", "scoreboard"],
+      activeWires: ["test_expected", "expected_scoreboard"],
+      code: "foreach (r_Payload[r_ByteIdx])\n    r_ExpectedQ.push_back(r_Payload[r_ByteIdx]);",
+      packetWire: null,
+      packet: ""
+    }
+  ],
+  snippet: "tb_top_v6.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
