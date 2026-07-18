@@ -1,5 +1,11 @@
 # 로컬 전용 AI 가이드라인
 /0_ai/0_local/
 
+# AI 대화 기록
+/0_ai/2_chat/
+
+# 계획 문서
+/0_ai/0_global/plan/
+
 # 시뮬레이션 산출물
 /260329_uart/**/sim/out/
