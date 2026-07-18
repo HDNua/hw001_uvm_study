@@ -25,6 +25,9 @@
 
   let wireGeometry = new Map();
   let currentStep = 0;
+  let stepPreviousButton;
+  let stepNextButton;
+  let stepIndicator;
 
   function toneColor(tone) {
     const colors = {
@@ -126,6 +129,41 @@
       });
       stepList.appendChild(button);
     });
+
+    const navigation = document.createElement("nav");
+    navigation.className = "step-nav";
+    navigation.setAttribute("aria-label", "Flow Step 이동");
+
+    stepPreviousButton = document.createElement("button");
+    stepPreviousButton.className = "step-nav-btn";
+    stepPreviousButton.type = "button";
+    stepPreviousButton.setAttribute("aria-label", "이전 Flow Step");
+    stepPreviousButton.textContent = "←";
+    stepPreviousButton.addEventListener("click", function () {
+      setStep(currentStep - 1);
+    });
+
+    stepIndicator = document.createElement("span");
+    stepIndicator.className = "step-indicator";
+    stepIndicator.setAttribute("aria-live", "polite");
+
+    stepNextButton = document.createElement("button");
+    stepNextButton.className = "step-nav-btn";
+    stepNextButton.type = "button";
+    stepNextButton.setAttribute("aria-label", "다음 Flow Step");
+    stepNextButton.textContent = "→";
+    stepNextButton.addEventListener("click", function () {
+      setStep(currentStep + 1);
+    });
+
+    navigation.append(stepPreviousButton, stepIndicator, stepNextButton);
+    stepList.insertAdjacentElement("afterend", navigation);
+  }
+
+  function updateStepNavigation() {
+    stepIndicator.textContent = (currentStep + 1) + " / " + stage.steps.length;
+    stepPreviousButton.disabled = currentStep === 0;
+    stepNextButton.disabled = currentStep === stage.steps.length - 1;
   }
 
   function edgePoint(fromRect, toRect, boardRect) {
@@ -215,11 +253,17 @@
   }
 
   function setStep(index) {
-    currentStep = index;
-    const step = stage.steps[index];
+    currentStep = Math.max(0, Math.min(stage.steps.length - 1, index));
+    const step = stage.steps[currentStep];
 
     document.querySelectorAll(".step-btn").forEach(function (button) {
-      button.classList.toggle("active", Number(button.dataset.step) === index);
+      const isActive = Number(button.dataset.step) === currentStep;
+      button.classList.toggle("active", isActive);
+      if (isActive) {
+        button.setAttribute("aria-current", "step");
+      } else {
+        button.removeAttribute("aria-current");
+      }
     });
     document.querySelectorAll(".node").forEach(function (node) {
       node.classList.toggle("active", step.activeNodes.includes(node.dataset.node));
@@ -232,6 +276,7 @@
     detailBody.textContent = step.body;
     codeBlock.textContent = step.code;
     placePacket(step);
+    updateStepNavigation();
   }
 
   renderHeader();

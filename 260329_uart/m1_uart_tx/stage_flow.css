@@ -136,6 +136,53 @@ h2 {
   border-color: rgba(90, 167, 255, .7);
 }
 
+.step-nav {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 42px;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.step-nav-btn {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid rgba(90, 167, 255, .38);
+  border-radius: 50%;
+  background: #101820;
+  color: #dcecff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 800;
+}
+
+.step-nav-btn:hover:not(:disabled) {
+  border-color: rgba(90, 167, 255, .75);
+  background: rgba(90, 167, 255, .12);
+}
+
+.step-nav-btn:focus-visible,
+.step-btn:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
+
+.step-nav-btn:disabled {
+  opacity: .25;
+  cursor: not-allowed;
+}
+
+.step-indicator {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  text-align: center;
+}
+
 .section-gap { margin-top: 14px; }
 
 .focus-card,
