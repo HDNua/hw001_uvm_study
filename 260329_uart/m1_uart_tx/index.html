@@ -186,7 +186,7 @@ footer {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span><b>→</b><span>m06 sequence 분리</span><b>→</b><span>m07 expected 경로 분리</span><b>→</b><span>m08 역할 계층</span><b>→</b><span>m09 interface·item·sequencer</span><b>→</b><span>m10 UVC 파일 블록</span><b>→</b><span>m11 mailbox channel</span><b>→</b><span>m12 SV class UVC</span>
+      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span><b>→</b><span>m06 sequence 분리</span><b>→</b><span>m07 expected 경로 분리</span><b>→</b><span>m08 역할 계층</span><b>→</b><span>m09 interface·item·sequencer</span><b>→</b><span>m10 UVC 파일 블록</span><b>→</b><span>m11 mailbox channel</span><b>→</b><span>m12 SV class UVC</span><b>→</b><span>m13 seq_item_port</span>
     </div>
 
     <div class="grid">
@@ -342,6 +342,18 @@ footer {
           <span>test·env·agent·driver·monitor class ownership</span>
           <span>constructor를 통한 동일 object handle 연결</span>
           <span>virtual uart_tx_if를 통한 pin 접근</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--amber)" href="m13_sv_seq_item_port/stage_flow_demo.html">
+        <span class="badge">m13</span>
+        <h2>m13_sv_seq_item_port</h2>
+        <p>driver와 sequencer 사이에 순수 SystemVerilog seq_item_port bridge를 도입합니다.</p>
+        <div class="points">
+          <span>driver의 sequencer 직접 참조 제거</span>
+          <span>get_next_item(req)로 request 수신</span>
+          <span>구동 후 item_done() 완료 통지</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>

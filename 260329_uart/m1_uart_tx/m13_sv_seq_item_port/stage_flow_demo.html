@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m13_sv_seq_item_port Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m13_sv_seq_item_port",
+  headline: "driver 앞에 seq_item_port bridge를 두고 UVM과 닮은 request handshake를 연습한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m12_sv_class_uvc 대비: class UVC와 mailbox 구현은 유지하고 driver가 sequencer를 직접 호출하던 연결만 port API로 바꾼다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m12", href: "../m12_sv_class_uvc/stage_flow_demo.html" }
+  ],
+  focus: [
+    "sequence는 이전처럼 sequencer에 uart_tx_seq_item을 넣어 stimulus를 준비한다.",
+    "driver는 sequencer handle 대신 seq_item_port만 알고 get_next_item(req)로 request를 받는다.",
+    "구동이 끝나면 item_done()을 호출해 UVM driver-sequencer handshake의 표면을 순수 SV로 먼저 익힌다."
+  ],
+  nodes: [
+    { id: "sequence", title: "uart_tx_sequence", text: "driver·expected item 생성", x: 3, y: 15, w: 17, h: 13, tone: "amber" },
+    { id: "sequencer", title: "uart_tx_sequencer", text: "mailbox와 request API 소유", x: 23, y: 15, w: 18, h: 13, tone: "blue" },
+    { id: "port", title: "seq_item_port", text: "driver용 API bridge", x: 44, y: 15, w: 16, h: 13, tone: "violet" },
+    { id: "driver", title: "uart_tx_driver", text: "req 수신·DUT 입력 구동", x: 63, y: 15, w: 16, h: 13, tone: "rose" },
+    { id: "interface", title: "uart_tx_if", text: "class와 DUT pin 연결", x: 82, y: 15, w: 15, h: 13, tone: "slate" },
+    { id: "monitor", title: "uart_tx_monitor", text: "actual item 복원", x: 68, y: 60, w: 18, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uart_tx_scoreboard", text: "expected·actual 비교", x: 42, y: 60, w: 20, h: 13, tone: "green" },
+    { id: "env", title: "env / agent", text: "port와 객체 handle 연결", x: 7, y: 55, w: 19, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "sequence_sequencer", from: "sequence", to: "sequencer" },
+    { id: "sequencer_port", from: "sequencer", to: "port" },
+    { id: "port_driver", from: "port", to: "driver" },
+    { id: "driver_interface", from: "driver", to: "interface" },
+    { id: "interface_monitor", from: "interface", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "env_port", from: "env", to: "port" },
+    { id: "env_scoreboard", from: "env", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "sequence가 item 준비",
+      body: "sequence가 driver item과 expected item을 만들고 driver item은 sequencer mailbox에 넣는다.",
+      activeNodes: ["sequence", "sequencer", "scoreboard"],
+      activeWires: ["sequence_sequencer"],
+      code: "driver_item = new(payload[r_ByteIdx]);\nsequencer.put_item(driver_item);\nexp_mbx.put(expected_item);",
+      packetWire: "sequence_sequencer",
+      packet: "item 48"
+    },
+    {
+      title: "port bridge 연결",
+      body: "test가 하나의 sequencer로 seq_item_port를 만들고 env를 거쳐 driver에 같은 port handle을 전달한다.",
+      activeNodes: ["sequencer", "port", "env", "driver"],
+      activeWires: ["sequencer_port", "env_port", "port_driver"],
+      code: "sequencer = new();\nseq_item_port = new(sequencer);\nenv = new(vif, seq_item_port, exp_mbx, mon_mbx);",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "get_next_item(req)",
+      body: "driver가 port에 request를 요청하면 port가 sequencer의 blocking get을 감싸 req handle을 전달한다.",
+      activeNodes: ["sequencer", "port", "driver"],
+      activeWires: ["sequencer_port", "port_driver"],
+      code: "seq_item_port.get_next_item(req);\n// port 내부\nsequencer.get_next_item(item);",
+      packetWire: "port_driver",
+      packet: "req 48"
+    },
+    {
+      title: "request 구동",
+      body: "driver는 받은 req의 data를 virtual interface에 구동한다. monitor와 scoreboard 경로는 m12와 같다.",
+      activeNodes: ["driver", "interface", "monitor", "scoreboard"],
+      activeWires: ["driver_interface", "interface_monitor", "monitor_scoreboard"],
+      code: "vif.r_TxData <= req.data;\nvif.r_TxValid <= 1'b1;\n@(posedge vif.i_Clk);",
+      packetWire: "driver_interface",
+      packet: "UART 48"
+    },
+    {
+      title: "item_done() 완료 통지",
+      body: "한 request 구동이 끝나면 driver가 port의 item_done()을 호출한다. 이 단계에서는 동작 없는 helper지만 handshake 순서를 분명히 만든다.",
+      activeNodes: ["driver", "port", "sequencer"],
+      activeWires: ["port_driver", "sequencer_port"],
+      code: "drive_item(req);\nseq_item_port.item_done();\n// port -> sequencer.item_done()",
+      packetWire: "sequencer_port",
+      packet: "done"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_seq_item_port.sv / uart_tx_driver.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
