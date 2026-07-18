@@ -10,19 +10,21 @@ $SimDir       = Split-Path -Parent $MyInvocation.MyCommand.Path
 $StageDir     = (Resolve-Path (Join-Path $SimDir "..")).Path
 $UartRoot     = (Resolve-Path (Join-Path $StageDir "..")).Path
 $OutDir       = Join-Path $SimDir "out"
+$UvcDir       = (Resolve-Path (Join-Path $StageDir "uvc\uart_tx")).Path
+$TestDir      = (Resolve-Path (Join-Path $StageDir "tb\test")).Path
 $RtlFile      = (Resolve-Path (Join-Path $UartRoot "m00_rtl\UART_Tx.sv")).Path
-$InterfaceFile = (Resolve-Path (Join-Path $StageDir "tb\if\uart_tx_if.sv")).Path
-$PackageFile   = (Resolve-Path (Join-Path $StageDir "tb\pkg\uart_tx_pkg.sv")).Path
-$TbFile        = (Resolve-Path (Join-Path $StageDir "tb\top\tb_top_v9.sv")).Path
+$InterfaceFile = (Resolve-Path (Join-Path $UvcDir "uart_tx_if.sv")).Path
+$PackageFile   = (Resolve-Path (Join-Path $UvcDir "uart_tx_pkg.sv")).Path
+$TbFile        = (Resolve-Path (Join-Path $StageDir "tb\top\tb_top_v10.sv")).Path
 $Snapshot      = "uart_tx_sim"
 $RunTclName    = "run_xsim.tcl"
 $RunTcl        = Join-Path $OutDir $RunTclName
 $SimLog        = Join-Path $OutDir "sim_xsim.log"
-$ExpectedItemCount = 5
-$ExpectedPassCount = 5
+$ExpectedCaseCount = 3
+$ExpectedItemCount = 15
+$ExpectedPassCount = 15
 $ExpectedResult = "[SB] RESULT: pass=5 fail=0"
-$ExpectedTestStart = "[TEST] IF_SEQITEM_SEQUENCER_START bytes=5"
-$ExpectedTestDone = "[TEST] IF_SEQITEM_SEQUENCER_DONE"
+$ExpectedTestDone = "[TEST] UVC_BLOCK_ALL_DONE cases=3"
 
 function Check-Exit {
     if ($LASTEXITCODE -ne 0) {
@@ -34,7 +36,7 @@ New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 
 Push-Location $OutDir
 try {
-    & xvlog -sv $RtlFile $InterfaceFile $PackageFile $TbFile
+    & xvlog -sv -i $UvcDir -i $TestDir $RtlFile $InterfaceFile $PackageFile $TbFile
     Check-Exit
 
     & xelab TB_Top -debug typical -s $Snapshot
@@ -49,6 +51,14 @@ quit
     & xsim $Snapshot -tclbatch $RunTclName -log sim_xsim.log -wdb uart_tx.wdb
     Check-Exit
 
+    $CaseStartCount = @(Select-String -LiteralPath $SimLog -Pattern '^\[TEST\] UVC_BLOCK_CASE_START').Count
+    if ($CaseStartCount -ne $ExpectedCaseCount) {
+        throw "Expected $ExpectedCaseCount case starts, found $CaseStartCount in $SimLog"
+    }
+    $CaseDoneCount = @(Select-String -LiteralPath $SimLog -Pattern '^\[TEST\] UVC_BLOCK_CASE_DONE').Count
+    if ($CaseDoneCount -ne $ExpectedCaseCount) {
+        throw "Expected $ExpectedCaseCount case completions, found $CaseDoneCount in $SimLog"
+    }
     $SequencerPutCount = @(Select-String -LiteralPath $SimLog -Pattern '^\[SEQR\] put data:').Count
     if ($SequencerPutCount -ne $ExpectedItemCount) {
         throw "Expected $ExpectedItemCount sequencer put results, found $SequencerPutCount in $SimLog"
@@ -73,14 +83,12 @@ quit
     if ($PassCount -ne $ExpectedPassCount) {
         throw "Expected $ExpectedPassCount scoreboard PASS results, found $PassCount in $SimLog"
     }
-    if (!(Select-String -Quiet -SimpleMatch -LiteralPath $SimLog -Pattern $ExpectedResult)) {
-        throw "Expected scoreboard result not found: $ExpectedResult"
-    }
-    if (!(Select-String -Quiet -SimpleMatch -LiteralPath $SimLog -Pattern $ExpectedTestStart)) {
-        throw "Expected test start marker not found: $ExpectedTestStart"
+    $ResultCount = @(Select-String -SimpleMatch -LiteralPath $SimLog -Pattern $ExpectedResult).Count
+    if ($ResultCount -ne $ExpectedCaseCount) {
+        throw "Expected $ExpectedCaseCount scoreboard results '$ExpectedResult', found $ResultCount in $SimLog"
     }
     if (!(Select-String -Quiet -SimpleMatch -LiteralPath $SimLog -Pattern $ExpectedTestDone)) {
-        throw "Expected test done marker not found: $ExpectedTestDone"
+        throw "Expected test completion marker not found: $ExpectedTestDone"
     }
 }
 finally {

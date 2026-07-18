@@ -65,21 +65,22 @@ window.STAGE = {
   title: "m09_if_seqitem_sequencer",
   headline: "interface, sequence item, sequencer API를 task 기반 UART TX 구조에 넣는다.",
   focusLabel: "이전 단계 대비",
-  focusSummary: "m08_role_split 대비: 역할 계층은 유지하고 pin, transaction, sequence-driver handoff를 객체와 API로 감싼다.",
+  focusSummary: "m08_role_split 대비: 역할 계층과 구형 TB hierarchy는 유지하고 interface, item wrapper와 sequencer API 개념만 도입한다.",
   navLinks: [
     { label: "목차", href: "../index.html" },
     { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
-    { label: "← m08", href: "../m08_role_split/stage_flow_demo.html" }
+    { label: "← m08", href: "../m08_role_split/stage_flow_demo.html" },
+    { label: "m10 →", href: "../m10_uvc_block/stage_flow_demo.html" }
   ],
   focus: [
     "DUT pin은 uart_tx_if로 묶여 driver와 monitor가 같은 interface를 바라본다.",
-    "payload byte는 uart_tx_seq_item 객체가 되어 sequencer queue를 통과한다.",
-    "sequence와 driver는 queue를 직접 공유하지 않고 put/get task로 handoff한다."
+    "payload byte는 sequence와 driver 양쪽에서 uart_tx_seq_item으로 감싸지만 queue에는 raw data가 흐른다.",
+    "sequence와 driver는 queue를 직접 만지지 않고 sequencer put/get task를 호출한다."
   ],
   nodes: [
     { id: "sequence", title: "uart_tx_sequence", text: "payload를 item과 expected로 생성", x: 4, y: 15, w: 17, h: 13, tone: "amber" },
     { id: "seq_item", title: "uart_tx_seq_item", text: "한 byte transaction object", x: 27, y: 15, w: 17, h: 13, tone: "violet" },
-    { id: "sequencer", title: "sequencer API", text: "item queue의 put/get 경계", x: 50, y: 15, w: 17, h: 13, tone: "blue" },
+    { id: "sequencer", title: "sequencer API", text: "raw data queue의 put/get 경계", x: 50, y: 15, w: 17, h: 13, tone: "blue" },
     { id: "driver", title: "uart_tx_driver", text: "item을 받아 interface 구동", x: 75, y: 15, w: 17, h: 13, tone: "rose" },
     { id: "interface", title: "uart_tx_if", text: "UART TX pin bundle", x: 75, y: 45, w: 17, h: 13, tone: "slate" },
     { id: "dut", title: "UART_Tx DUT", text: "interface 신호로 연결", x: 50, y: 45, w: 17, h: 13, tone: "cyan" },
@@ -117,10 +118,10 @@ window.STAGE = {
     },
     {
       title: "sequencer put/get",
-      body: "sequence와 driver가 item queue를 직접 만지지 않고 sequencer API를 통해 객체를 전달한다.",
+      body: "sequence와 driver가 queue를 직접 만지지 않고 sequencer API를 통해 raw byte를 전달한다.",
       activeNodes: ["seq_item", "sequencer", "driver"],
       activeWires: ["item_sequencer", "sequencer_driver"],
-      code: "uart_tx_sequencer_put_item(item);\nuart_tx_sequencer_get_item(item);",
+      code: "uart_tx_sequencer_put_data(item.data);\nuart_tx_sequencer_get_data(r_Data);",
       packetWire: "sequencer_driver",
       packet: "48"
     },

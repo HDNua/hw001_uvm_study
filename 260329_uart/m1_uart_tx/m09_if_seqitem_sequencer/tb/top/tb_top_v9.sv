@@ -12,6 +12,8 @@
 //   - driver / monitor / scoreboard / agent / env / test는 아직 task 기반이다.
 //   - interface, sequence item, sequencer handoff를 class UVC 전에 드러낸다.
 //   - stimulus/expected/actual의 ownership과 queue 경로는 m08을 유지한다.
+//   - item 개념은 보이지만 sequencer queue는 아직 raw byte를 전달한다.
+//   - 역할 파일 분리와 UVC 폴더 구조는 다음 m10에서 도입한다.
 // =============================================================================
 
 module TB_Top;
@@ -50,10 +52,10 @@ module TB_Top;
     // -------------------------------------------------------------------------
     // 역할 사이 데이터 handoff
     // -------------------------------------------------------------------------
-    uart_tx_seq_item r_SeqrQ [$];
-    logic [7:0]      r_ExpQ  [$];
-    logic [7:0]      r_MonQ  [$];
-    event            e_MonDataReady;
+    logic [7:0] r_SeqrQ [$];
+    logic [7:0] r_ExpQ  [$];
+    logic [7:0] r_MonQ  [$];
+    event       e_MonDataReady;
 
     logic [7:0] r_Payload [0:PAYLOAD_SIZE-1];
 
@@ -61,19 +63,19 @@ module TB_Top;
     int r_FailCnt = 0;
 
     // -------------------------------------------------------------------------
-    // sequencer API: sequence item queue를 put/get task로 감싼다.
+    // sequencer API: raw byte queue를 put/get task로 감싼다.
     // -------------------------------------------------------------------------
-    task uart_tx_sequencer_put_item(input uart_tx_seq_item item);
-        r_SeqrQ.push_back(item);
-        $display("[SEQR] put item: 0x%02h", item.data);
+    task uart_tx_sequencer_put_data(input logic [7:0] data);
+        r_SeqrQ.push_back(data);
+        $display("[SEQR] put data: 0x%02h", data);
     endtask
 
-    task uart_tx_sequencer_get_item(output uart_tx_seq_item item);
+    task uart_tx_sequencer_get_data(output logic [7:0] data);
         while (r_SeqrQ.size() == 0)
             @(posedge r_Clk);
 
-        item = r_SeqrQ.pop_front();
-        $display("[SEQR] get item: 0x%02h", item.data);
+        data = r_SeqrQ.pop_front();
+        $display("[SEQR] get data: 0x%02h", data);
     endtask
 
     // -------------------------------------------------------------------------
@@ -84,7 +86,7 @@ module TB_Top;
 
         foreach (r_Payload[r_ByteIdx]) begin
             item = new(r_Payload[r_ByteIdx]);
-            uart_tx_sequencer_put_item(item);
+            uart_tx_sequencer_put_data(item.data);
             r_ExpQ.push_back(item.data);
             $display("[SEQ] queued item/expected: 0x%02h", item.data);
         end
@@ -95,9 +97,11 @@ module TB_Top;
     // -------------------------------------------------------------------------
     task uart_tx_driver(input int num_bytes);
         uart_tx_seq_item item;
+        logic [7:0]      r_Data;
 
         repeat (num_bytes) begin
-            uart_tx_sequencer_get_item(item);
+            uart_tx_sequencer_get_data(r_Data);
+            item = new(r_Data);
             $display("[DRV] driving item: 0x%02h", item.data);
 
             do @(posedge r_Clk); while (!I_UART_TxIf.w_TxReady);
@@ -180,7 +184,7 @@ module TB_Top;
     endtask
 
     // -------------------------------------------------------------------------
-    // test: payload 준비와 sequence/env 병렬 기동 및 최종 판정을 맡는다.
+    // test: payload 준비와 sequence/env 순차 기동 및 최종 판정을 맡는다.
     // -------------------------------------------------------------------------
     task uart_tx_test();
         r_Payload[0] = 8'h48;  // 'H'
@@ -191,14 +195,8 @@ module TB_Top;
 
         $display("[TEST] IF_SEQITEM_SEQUENCER_START bytes=%0d", PAYLOAD_SIZE);
 
-        fork
-            begin : SEQUENCE_THREAD
-                uart_tx_sequence();
-            end
-            begin : ENV_THREAD
-                uart_tx_env(PAYLOAD_SIZE);
-            end
-        join
+        uart_tx_sequence();
+        uart_tx_env(PAYLOAD_SIZE);
 
         $display("[SB] ===== REPORT =====");
         $display("[SB] RESULT: pass=%0d fail=%0d", r_PassCnt, r_FailCnt);

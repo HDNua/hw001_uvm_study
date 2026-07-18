@@ -7,9 +7,8 @@ package uart_tx_pkg;
     // =========================================================================
     // uart_tx_seq_item
     //
-    // sequence가 driver에 넘기는 transaction 단위다.
-    // 이 예제에서는 한 번의 UART TX 전송이 한 byte이므로 data만 가진다.
-    // m08의 raw byte를 UVM식 sequence item 개념으로 감싼 중간 단계다.
+    // sequence와 driver가 byte를 transaction 개념으로 바라보기 위한 wrapper다.
+    // m09의 sequencer handoff는 아직 객체가 아니라 raw byte data를 전달한다.
     // =========================================================================
     class uart_tx_seq_item;
         logic [7:0] data;

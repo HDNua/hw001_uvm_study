@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m10_uvc_block Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m10_uvc_block",
+  headline: "UART TX 역할을 파일별로 분리해 include 기반 UVC 블록을 만든다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m09_if_seqitem_sequencer 대비: 한 top에 모여 있던 역할을 uvc/uart_tx와 tb/test의 파일 경계로 분리한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m09", href: "../m09_if_seqitem_sequencer/stage_flow_demo.html" }
+  ],
+  focus: [
+    "interface, package, item, sequencer, sequence, driver, monitor, scoreboard, agent와 env가 UVC 역할 파일로 분리된다.",
+    "재사용 역할은 uvc/uart_tx에, 단계 전용 top과 test는 tb 아래에 둔다.",
+    "아직 class component는 아니며 raw byte queue + event handoff를 사용하는 include 기반 task UVC다."
+  ],
+  nodes: [
+    { id: "top", title: "tb/top", text: "interface, DUT와 include 조립", x: 4, y: 15, w: 15, h: 13, tone: "violet" },
+    { id: "test", title: "tb/test", text: "smoke, pattern, random case", x: 25, y: 15, w: 15, h: 13, tone: "violet" },
+    { id: "sequence", title: "sequence file", text: "item과 expected 생성", x: 46, y: 15, w: 17, h: 13, tone: "amber" },
+    { id: "sequencer", title: "sequencer file", text: "raw data queue put/get", x: 70, y: 15, w: 18, h: 13, tone: "blue" },
+    { id: "driver", title: "driver file", text: "item으로 interface 구동", x: 70, y: 45, w: 18, h: 13, tone: "rose" },
+    { id: "interface", title: "uart_tx_if", text: "UART TX pin bundle", x: 47, y: 45, w: 17, h: 13, tone: "slate" },
+    { id: "monitor", title: "monitor file", text: "serial output actual 복원", x: 26, y: 52, w: 16, h: 13, tone: "green" },
+    { id: "scoreboard", title: "scoreboard file", text: "case별 expected/actual 비교", x: 4, y: 62, w: 17, h: 13, tone: "green" },
+    { id: "agent_env", title: "agent / env files", text: "역할 task 병렬 실행", x: 4, y: 37, w: 17, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "top_test", from: "top", to: "test" },
+    { id: "test_sequence", from: "test", to: "sequence" },
+    { id: "sequence_sequencer", from: "sequence", to: "sequencer" },
+    { id: "sequencer_driver", from: "sequencer", to: "driver" },
+    { id: "driver_interface", from: "driver", to: "interface" },
+    { id: "interface_monitor", from: "interface", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "agent_env_driver", from: "agent_env", to: "driver" },
+    { id: "agent_env_scoreboard", from: "agent_env", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "파일과 폴더 경계",
+      body: "TB_Top은 조립만 담당하고 단계 전용 test와 재사용 가능한 UART TX 역할을 별도 폴더에 둔다.",
+      activeNodes: ["top", "test", "agent_env"],
+      activeWires: ["top_test"],
+      code: "`include \"uart_tx_agent.sv\"\n`include \"uart_tx_env.sv\"\n`include \"uart_tx_test.sv\"",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "raw-data handoff 유지",
+      body: "파일이 나뉘어도 m09처럼 양쪽에서 item으로 감싸고 sequencer API는 raw byte를 전달한다.",
+      activeNodes: ["sequence", "sequencer", "driver"],
+      activeWires: ["sequence_sequencer", "sequencer_driver"],
+      code: "uart_tx_sequencer_put_data(item.data);\nuart_tx_sequencer_get_data(r_Data);",
+      packetWire: "sequencer_driver",
+      packet: "48"
+    },
+    {
+      title: "interface 관찰 경로",
+      body: "driver와 monitor 파일은 같은 uart_tx_if instance를 각각 구동하고 관찰한다.",
+      activeNodes: ["driver", "interface", "monitor", "scoreboard"],
+      activeWires: ["driver_interface", "interface_monitor", "monitor_scoreboard"],
+      code: "I_UART_TxIf.r_TxData <= item.data;\nuart_tx_scoreboard_write_actual(r_Captured);",
+      packetWire: "interface_monitor",
+      packet: "48"
+    },
+    {
+      title: "세 가지 case 재사용",
+      body: "같은 UVC 블록에서 smoke, pattern, random payload를 순차 실행해 파일별 역할을 반복 사용한다.",
+      activeNodes: ["test", "sequence", "sequencer", "driver", "interface", "monitor", "scoreboard", "agent_env"],
+      activeWires: ["test_sequence", "sequence_sequencer", "sequencer_driver", "driver_interface", "interface_monitor", "monitor_scoreboard", "agent_env_driver", "agent_env_scoreboard"],
+      code: "uart_tx_run_case(UART_TX_SEQ_SMOKE);\nuart_tx_run_case(UART_TX_SEQ_PATTERN);\nuart_tx_run_case(UART_TX_SEQ_RANDOM);",
+      packetWire: "test_sequence",
+      packet: "3 cases"
+    }
+  ],
+  snippet: "uvc/uart_tx/*.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
