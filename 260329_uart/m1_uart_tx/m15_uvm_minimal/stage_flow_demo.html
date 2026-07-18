@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m15_uvm_minimal Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m15_uvm_minimal",
+  headline: "순수 SV helper를 실제 UVM object, component, phase와 TLM port로 치환한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m14_sv_analysis_port 대비: 같은 역할과 데이터 ownership을 UVM factory, phase, config DB와 표준 port 구조로 실행한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m14", href: "../m14_sv_analysis_port/stage_flow_demo.html" }
+  ],
+  focus: [
+    "sequence item, sequence와 각 UVC 역할이 실제 UVM object/component를 상속하고 factory로 생성된다.",
+    "constructor 조립과 수동 run() 대신 build_phase, connect_phase, run_phase와 objection을 사용한다.",
+    "request는 내장 seq_item_port, expected와 actual은 실제 UVM analysis port/imp로 전달된다."
+  ],
+  nodes: [
+    { id: "test", title: "uvm_test", text: "factory·case·objection 관리", x: 3, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "sequence", title: "uvm_sequence", text: "request·expected item 생성", x: 23, y: 15, w: 18, h: 13, tone: "amber" },
+    { id: "sequencer", title: "uvm_sequencer", text: "표준 item handoff", x: 44, y: 15, w: 17, h: 13, tone: "blue" },
+    { id: "driver", title: "uvm_driver", text: "내장 port로 req 구동", x: 64, y: 15, w: 15, h: 13, tone: "rose" },
+    { id: "interface", title: "config_db / vif", text: "UVM component와 DUT 연결", x: 82, y: 15, w: 15, h: 13, tone: "slate" },
+    { id: "monitor", title: "uvm_monitor", text: "actual analysis publish", x: 78, y: 59, w: 18, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uvm_scoreboard", text: "expected·actual imp 비교", x: 51, y: 59, w: 21, h: 13, tone: "green" },
+    { id: "env", title: "uvm_env / agent", text: "component·TLM 연결", x: 23, y: 55, w: 20, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "test_sequence", from: "test", to: "sequence" },
+    { id: "sequence_sequencer", from: "sequence", to: "sequencer" },
+    { id: "sequencer_driver", from: "sequencer", to: "driver" },
+    { id: "driver_interface", from: "driver", to: "interface" },
+    { id: "interface_monitor", from: "interface", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "sequence_scoreboard", from: "sequence", to: "scoreboard" },
+    { id: "test_env", from: "test", to: "env" },
+    { id: "env_scoreboard", from: "env", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "factory와 build_phase",
+      body: "run_test()가 uvm_test를 만들고 test, env와 agent가 type_id::create()로 하위 component를 구성한다.",
+      activeNodes: ["test", "env", "driver", "monitor", "scoreboard"],
+      activeWires: ["test_env"],
+      code: "env = uart_tx_env::type_id::create(\"env\", this);\ndriver = uart_tx_driver::type_id::create(\"driver\", this);",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "config DB로 vif 전달",
+      body: "TB_Top이 interface를 config DB에 넣고 driver, monitor와 test가 build_phase에서 virtual interface를 가져온다.",
+      activeNodes: ["test", "driver", "interface", "monitor"],
+      activeWires: ["driver_interface", "interface_monitor"],
+      code: "uvm_config_db #(virtual uart_tx_if)::set(null, \"*\", \"vif\", I_UART_TxIf);\nuvm_config_db #(virtual uart_tx_if)::get(this, \"\", \"vif\", vif);",
+      packetWire: "driver_interface",
+      packet: "vif"
+    },
+    {
+      title: "connect_phase",
+      body: "agent가 driver의 내장 seq_item_port를 sequencer export에 연결하고 env가 expected/actual analysis port를 scoreboard imp에 연결한다.",
+      activeNodes: ["env", "sequencer", "driver", "monitor", "scoreboard"],
+      activeWires: ["sequencer_driver", "monitor_scoreboard", "env_scoreboard"],
+      code: "driver.seq_item_port.connect(sequencer.seq_item_export);\nexpected_ap.connect(scoreboard.expected_imp);\nmonitor.ap.connect(scoreboard.actual_imp);",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "UVM request handshake",
+      body: "sequence가 start_item/finish_item으로 request를 보내고 driver가 get_next_item(req)와 item_done()으로 처리한다.",
+      activeNodes: ["test", "sequence", "sequencer", "driver"],
+      activeWires: ["test_sequence", "sequence_sequencer", "sequencer_driver"],
+      code: "start_item(req_item);\nfinish_item(req_item);\nseq_item_port.get_next_item(req);\nseq_item_port.item_done();",
+      packetWire: "sequencer_driver",
+      packet: "req 48"
+    },
+    {
+      title: "UVM analysis 비교",
+      body: "sequence의 expected와 monitor의 actual이 서로 다른 analysis imp로 들어와 scoreboard callback에서 비교된다.",
+      activeNodes: ["sequence", "interface", "monitor", "scoreboard"],
+      activeWires: ["sequence_scoreboard", "interface_monitor", "monitor_scoreboard"],
+      code: "expected_ap.write(expected_item);\nmonitor.ap.write(item);\nfunction void write_actual(uart_tx_seq_item actual);",
+      packetWire: "monitor_scoreboard",
+      packet: "PASS"
+    },
+    {
+      title: "run_phase와 objection",
+      body: "test가 objection을 유지하는 동안 세 case를 실행하고 모두 끝난 뒤 drop해 UVM phase를 정상 종료한다.",
+      activeNodes: ["test", "env", "scoreboard"],
+      activeWires: ["test_env", "env_scoreboard"],
+      code: "phase.raise_objection(this);\n// smoke, pattern, random\nphase.drop_objection(this);",
+      packetWire: "env_scoreboard",
+      packet: "done"
+    }
+  ],
+  snippet: "uvc/uart_tx/*.sv / tb/test/uart_tx_test.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
