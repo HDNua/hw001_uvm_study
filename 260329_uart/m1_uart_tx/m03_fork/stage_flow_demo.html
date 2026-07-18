@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m03_fork Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m03_fork",
+  headline: "driver와 monitor를 fork/join으로 동시에 실행한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m02_task 대비: 순차 task 호출이 fork/join 병렬 스레드로 갈라진다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m02", href: "../m02_task/stage_flow_demo.html" }
+  ],
+  focus: [
+    "UART TX가 보내는 동안 monitor가 동시에 듣는다.",
+    "driver와 monitor는 같은 시간축에서 독립적으로 진행된다.",
+    "scoreboard 분리는 아직 아니고 monitor task가 직접 결과를 확인한다."
+  ],
+  nodes: [
+    { id: "test", title: "TB_Top", text: "fork/join으로 두 스레드를 시작", x: 5, y: 20, w: 18, h: 14, tone: "violet" },
+    { id: "driver", title: "driver thread", text: "send_byte 반복", x: 32, y: 13, w: 18, h: 13, tone: "rose" },
+    { id: "dut", title: "UART_Tx DUT", text: "serial output 생성", x: 58, y: 20, w: 16, h: 14, tone: "cyan" },
+    { id: "monitor", title: "monitor thread", text: "recv_and_check 반복", x: 32, y: 48, w: 20, h: 13, tone: "green" },
+    { id: "check", title: "inline check", text: "monitor 내부에서 expected 비교", x: 76, y: 48, w: 18, h: 13, tone: "green" }
+  ],
+  wires: [
+    { id: "test_driver", from: "test", to: "driver" },
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "dut_monitor", from: "dut", to: "monitor" },
+    { id: "monitor_check", from: "monitor", to: "check" }
+  ],
+  steps: [
+    {
+      title: "fork 시작",
+      body: "테스트벤치가 driver thread와 monitor thread를 동시에 띄운다.",
+      activeNodes: ["test", "driver", "monitor"],
+      activeWires: ["test_driver"],
+      code: "fork\n    driver...\n    monitor...\njoin",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "driver 진행",
+      body: "driver는 payload를 한 바이트씩 DUT로 보낸다.",
+      activeNodes: ["driver", "dut"],
+      activeWires: ["driver_dut"],
+      code: "foreach (r_Payload[r_ByteIdx])\n    send_byte(r_Payload[r_ByteIdx]);",
+      packetWire: "driver_dut",
+      packet: "48"
+    },
+    {
+      title: "monitor 동시 관찰",
+      body: "monitor는 driver와 같은 시간에 w_TxSerial을 샘플링한다.",
+      activeNodes: ["dut", "monitor"],
+      activeWires: ["dut_monitor"],
+      code: "foreach (r_Payload[r_ByteIdx])\n    recv_and_check(r_Payload[r_ByteIdx]);",
+      packetWire: "dut_monitor",
+      packet: "48"
+    },
+    {
+      title: "즉시 비교",
+      body: "아직 scoreboard가 없어서 monitor task가 직접 pass/fail을 판단한다.",
+      activeNodes: ["monitor", "check"],
+      activeWires: ["monitor_check"],
+      code: "recv_and_check(expected);",
+      packetWire: null,
+      packet: ""
+    }
+  ],
+  snippet: "tb_top_v3.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>

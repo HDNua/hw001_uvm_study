@@ -1,6 +1,6 @@
 # hw001 UVM Study
 
-UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용 프로젝트입니다. `m01_pure`의 직접 구동·검사 흐름에서 시작해 `m02_task`에서는 반복 동작을 task로 분리합니다.
+UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용 프로젝트입니다. `m01_pure`의 직접 구동·검사에서 시작해 `m02_task`에서는 반복 동작을 task로 분리하고, `m03_fork`에서는 driver와 monitor를 병렬 실행합니다.
 
 ## 프로젝트 구조
 
@@ -25,6 +25,13 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 │   ├── tb/
 │   │   └── tb_top_v2.sv
 │   └── stage_flow_demo.html
+├── m03_fork/
+│   ├── sim/
+│   │   ├── run_xsim.ps1
+│   │   └── view_xsim.ps1
+│   ├── tb/
+│   │   └── tb_top_v3.sv
+│   └── stage_flow_demo.html
 └── uart_tx_demo.html
 ```
 
@@ -33,6 +40,7 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 - `stage_flow.css`, `stage_flow.js`: 모든 단계 흐름 데모가 공유하는 화면 형식과 상호작용
 - `m01_pure`: 클래스나 UVM 없이 작성한 첫 번째 검증 단계
 - `m02_task`: 구동과 수신 동작을 `send_byte`/`recv_byte` task로 분리한 단계
+- `m03_fork`: driver와 monitor를 `fork/join`으로 병렬 실행하는 단계
 - `uart_tx_demo.html`: UART TX의 동작을 살펴보는 공용 인터랙티브 데모
 - `stage_flow_demo.html`: 공통 템플릿에 단계별 `STAGE` 데이터만 정의하는 검증 흐름 설명
 
@@ -46,10 +54,10 @@ Vivado/XSim은 macOS를 지원하지 않으므로 이 흐름은 Windows 또는 V
 
 ## 시뮬레이션 실행
 
-저장소 루트에서 실행할 단계의 `sim` 디렉터리로 이동합니다. 예를 들어 `m02_task`는 다음과 같이 실행합니다.
+저장소 루트에서 실행할 단계의 `sim` 디렉터리로 이동합니다. 예를 들어 `m03_fork`는 다음과 같이 실행합니다.
 
 ```powershell
-cd .\260329_uart\m1_uart_tx\m02_task\sim
+cd .\260329_uart\m1_uart_tx\m03_fork\sim
 .\run_xsim.ps1
 ```
 
@@ -60,7 +68,7 @@ $env:VIVADO_BIN = '<xvlog, xelab, xsim이 있는 디렉터리>'
 .\run_xsim.ps1 -VivadoBin $env:VIVADO_BIN
 ```
 
-성공하면 로그에 `PASS: captured=0x48`이 출력됩니다. 파형 데이터와 로그를 포함한 모든 시뮬레이션 산출물은 `sim/out/`에 생성되며 Git에서 제외됩니다.
+성공하면 m03 로그에 "Hello"의 각 바이트에 대한 PASS 5건이 출력됩니다. 파형 데이터와 로그를 포함한 모든 시뮬레이션 산출물은 `sim/out/`에 생성되며 Git에서 제외됩니다.
 
 파형을 GUI에서 열려면 시뮬레이션 완료 후 다음 명령을 실행합니다.
 
@@ -76,6 +84,7 @@ $env:VIVADO_BIN = '<xvlog, xelab, xsim이 있는 디렉터리>'
 - `260329_uart/m1_uart_tx/uart_tx_demo.html`
 - `260329_uart/m1_uart_tx/m01_pure/stage_flow_demo.html`
 - `260329_uart/m1_uart_tx/m02_task/stage_flow_demo.html`
+- `260329_uart/m1_uart_tx/m03_fork/stage_flow_demo.html`
 
 각 데모는 외부 웹 폰트 없이 로컬 시스템 글꼴만 사용합니다.
 
