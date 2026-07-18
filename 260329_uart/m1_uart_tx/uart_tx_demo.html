@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>UART TX - Interactive Demo</title>
+<style>
+  :root {
+    --font-sans: "Segoe UI Variable", "Segoe UI", -apple-system, BlinkMacSystemFont, "Noto Sans KR", Arial, sans-serif;
+    --font-mono: "Cascadia Mono", "D2Coding", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    --bg-dark: #0f172a;
+    --panel-bg: rgba(30, 41, 59, 0.7);
+    --panel-border: rgba(51, 65, 85, 0.8);
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent-blue: #3b82f6;
+    --accent-purple: #8b5cf6;
+    --accent-green: #10b981;
+    --accent-yellow: #eab308;
+    --accent-red: #ef4444;
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background: radial-gradient(circle at top right, #1e293b, #0f172a);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  .wrap {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 30px;
+  }
+
+  header {
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  h1 {
+    margin: 0 0 10px;
+    font-size: 32px;
+    font-weight: 800;
+    background: linear-gradient(90deg, #3b82f6, #10b981);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .sub {
+    color: var(--text-muted);
+    font-size: 15px;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 24px;
+  }
+
+  .panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border);
+    border-radius: 20px;
+    box-shadow: var(--glass-shadow);
+    padding: 24px;
+  }
+
+  h2 {
+    margin: 0 0 16px;
+    font-size: 18px;
+    color: #fff;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 10px;
+  }
+
+  .btns {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  button {
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid #334155;
+    color: var(--text-primary);
+    padding: 14px 18px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.2s ease;
+  }
+
+  button:hover {
+    background: rgba(51, 65, 85, 0.8);
+    transform: translateX(4px);
+  }
+
+  button.active {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.2), rgba(16, 185, 129, 0.2));
+    border-color: var(--accent-blue);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.3);
+  }
+
+  button.active::after {
+    content: "●";
+    float: right;
+    color: var(--accent-blue);
+    text-shadow: 0 0 8px var(--accent-blue);
+  }
+
+  .status-box {
+    margin-top: 0;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: #cbd5e1;
+    border-left: 4px solid var(--accent-blue);
+    min-height: 120px;
+  }
+
+  .status-box strong { font-size: 15px; }
+
+  .step-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 44px;
+    margin: 24px 0 14px;
+  }
+
+  .step-nav button {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    font-size: 20px;
+    text-align: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-nav button:hover {
+    transform: none;
+  }
+
+  .step-nav button:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .step-indicator {
+    font-size: 13px;
+    color: var(--text-muted);
+    min-width: 60px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  .stage {
+    position: relative;
+    overflow: hidden;
+    min-height: 550px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* HTML Visualization Elements */
+  .visualization {
+    width: 900px;
+    height: 550px;
+    position: relative;
+  }
+
+  .sender-shell {
+    position: absolute;
+    top: 24px;
+    left: 20px;
+    width: 430px;
+    height: 455px;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.08), rgba(15, 23, 42, 0.04));
+    box-shadow: inset 0 0 40px rgba(59, 130, 246, 0.06);
+    z-index: 1;
+  }
+
+  .sender-shell-title {
+    position: absolute;
+    top: 12px;
+    left: 18px;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--accent-blue);
+    letter-spacing: 0.04em;
+    background: rgba(15, 23, 42, 0.9);
+    padding: 0 6px;
+    border-radius: 6px;
+  }
+
+  .sender-shell-sub {
+    position: absolute;
+    top: 42px;
+    left: 18px;
+    font-size: 11px;
+    color: var(--text-muted);
+    background: rgba(15, 23, 42, 0.75);
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  /* CPU Box */
+  .cpu-box {
+    position: absolute;
+    top: 86px;
+    left: 40px;
+    width: 140px;
+    height: 90px;
+    background: rgba(30, 41, 59, 0.9);
+    border: 2px solid var(--accent-purple);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    z-index: 10;
+  }
+
+  .cpu-title { font-weight: 800; font-size: 20px; color: #fff; }
+  .cpu-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Parallel Bus wires */
+  .parallel-bus {
+    position: absolute;
+    top: 186px;
+    left: 80px;
+    width: 60px;
+    height: 74px;
+    display: flex;
+    justify-content: space-between;
+    opacity: 0.3;
+    transition: opacity 0.3s;
+  }
+  .parallel-bus.active { opacity: 1; }
+  .wire-line {
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(to bottom, var(--accent-purple), var(--accent-blue));
+    position: relative;
+    overflow: hidden;
+  }
+  .wire-line::after {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: #fff;
+    box-shadow: 0 0 10px #fff;
+    opacity: 0;
+  }
+  .parallel-bus.active .wire-line::after {
+    animation: flowDown 1s ease forwards;
+  }
+  @keyframes flowDown {
+    0% { top: -20px; opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* UART TX Block */
+  .uart-box {
+    position: absolute;
+    top: 260px;
+    left: 40px;
+    width: 380px;
+    height: 200px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 2px dashed var(--accent-blue);
+    border-radius: 16px;
+    padding: 16px;
+    z-index: 5;
+  }
+
+  .uart-title {
+    color: var(--accent-blue);
+    font-weight: 700;
+    font-size: 14px;
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    background: var(--bg-dark);
+    padding: 0 8px;
+  }
+
+  /* Shift Register Array */
+  .shift-reg-wrap {
+    position: absolute;
+    top: 40px;
+    left: 30px;
+    display: flex;
+    gap: 4px;
+  }
+
+  .bit-cell {
+    width: 36px;
+    height: 48px;
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid var(--panel-border);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    position: relative;
+    transition: all 0.3s;
+  }
+
+  .bit-cell.loaded {
+    border-color: var(--accent-blue);
+    box-shadow: inset 0 0 10px rgba(59, 130, 246, 0.2);
+  }
+
+  .bit-cell.shifting {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: var(--accent-blue);
+    color: var(--accent-yellow);
+    transform: translateY(-4px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  }
+
+  .bit-label {
+    position: absolute;
+    bottom: -18px;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+  }
+
+  .fsm-box {
+    position: absolute;
+    bottom: 20px;
+    left: 30px;
+    right: 30px;
+    height: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0,0,0,0.3);
+    border-radius: 20px;
+    padding: 0 10px;
+  }
+
+  .fsm-state {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding: 4px 12px;
+    border-radius: 12px;
+    transition: all 0.3s;
+  }
+
+  .fsm-state.active {
+    background: var(--accent-blue);
+    color: #fff;
+    box-shadow: 0 0 10px var(--accent-blue);
+  }
+
+  /* Single Serial Wire */
+  .serial-wire {
+    position: absolute;
+    top: 310px;
+    left: 420px;
+    width: 300px;
+    height: 4px;
+    background: #334155;
+    display: flex;
+    align-items: center;
+  }
+
+  .serial-label {
+    position: absolute;
+    top: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 12px;
+    color: var(--accent-yellow);
+    font-family: var(--font-mono);
+    font-weight: 700;
+  }
+
+  .wire-signal {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: var(--accent-yellow);
+    box-shadow: 0 0 10px var(--accent-yellow);
+    transition: opacity 0.2s;
+    opacity: 0;
+  }
+
+  .wire-signal.idle {
+    opacity: 0.2; /* default high */
+  }
+
+  /* The moving bit on the wire */
+  .flying-bit {
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: var(--accent-yellow);
+    color: #000;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 800;
+    font-size: 14px;
+    top: -13px;
+    left: 0;
+    opacity: 0;
+    box-shadow: 0 0 15px var(--accent-yellow);
+  }
+
+  @keyframes flyAcross {
+    0% { left: 0; opacity: 1; transform: scale(1); }
+    80% { left: 270px; opacity: 1; transform: scale(1); }
+    100% { left: 300px; opacity: 0; transform: scale(0.5); }
+  }
+
+  /* Receiver Device */
+  .rx-box {
+    position: absolute;
+    top: 238px;
+    right: 40px;
+    width: 190px;
+    height: 230px;
+    background: rgba(15, 23, 42, 0.8);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 18px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    z-index: 10;
+  }
+
+  .rx-title {
+    font-weight: 800;
+    font-size: 17px;
+    color: #fff;
+    letter-spacing: 0.03em;
+  }
+  .rx-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    text-align: center;
+    line-height: 1.45;
+    padding: 0 14px;
+  }
+
+  .rx-core {
+    margin-top: 18px;
+    width: 124px;
+    height: 78px;
+    border: 2px dashed var(--accent-green);
+    border-radius: 14px;
+    background: rgba(30, 41, 59, 0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.12);
+  }
+
+  .rx-core-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--accent-green);
+    font-family: var(--font-mono);
+  }
+
+  .rx-core-sub {
+    margin-top: 4px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .rx-data-display {
+    margin-top: 18px;
+    width: 100px;
+    height: 50px;
+    background: #000;
+    border-radius: 8px;
+    border: 1px solid #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 24px;
+    color: var(--accent-green);
+    box-shadow: inset 0 0 10px rgba(16, 185, 129, 0.2);
+  }
+
+  .rx-data-display.success {
+    animation: flashGreen 0.5s ease;
+  }
+  @keyframes flashGreen {
+    0%, 100% { background: #000; }
+    50% { background: rgba(16, 185, 129, 0.4); }
+  }
+
+  /* Tooltip overlay for explanation */
+  .tooltip {
+    position: absolute;
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+    border: 1px solid var(--accent-blue);
+    white-space: nowrap;
+  }
+  .tooltip.show { opacity: 1; }
+
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>UART TX 톺아보기 (초등학생도 이해가능!)</h1>
+    <div class="sub">
+      CPU가 데이터를 써주면, UART 내부의 <b>상태 머신(FSM)</b>과 <b>Shift Register(시프트 레지스터)</b>가 어떻게<br>동작하여 8개의 비트를 하나의 좁은 선으로 차례차례 보내는지 직관적으로 알아봅니다.<br>
+      오른쪽은 <b>Receiver Device</b>이고, 그 안의 <b>UART RX</b>가 직렬 비트를 받아 다시 1바이트로 조립합니다.
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="left-col">
+      <div class="panel">
+        <h2>어떻게 일렬로 보낼까?</h2>
+        <div class="btns">
+          <button id="btn1" onclick="playMode(1)" class="active">1. 짐 싣기 (Parallel Load)</button>
+          <button id="btn2" onclick="playMode(2)">2. 한 줄 세우기 (Shift & FSM)</button>
+          <button id="btn3" onclick="playMode(3)">3. 다시 조립하기 (UART RX/TB 직접 확인)</button>
+        </div>
+
+        <div class="step-nav">
+          <button id="btn-prev" onclick="goStep(-1)">←</button>
+          <span class="step-indicator" id="step-indicator">1 / 1</span>
+          <button id="btn-next" onclick="goStep(1)">→</button>
+        </div>
+
+        <div class="status-box" id="statusBox">
+          <!-- Text injected via JS -->
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="panel stage">
+        <div class="visualization" id="vis">
+
+          <div class="sender-shell">
+            <div class="sender-shell-title">SENDER SIDE</div>
+            <div class="sender-shell-sub">CPU와 UART TX는 같은 시스템 안에 있습니다.</div>
+          </div>
+
+          <!-- CPU -->
+          <div class="cpu-box" id="obj-cpu">
+            <div class="cpu-title">CPU</div>
+            <div class="cpu-sub">송신측 제어기</div>
+          </div>
+
+          <!-- Parallel Wires -->
+          <div class="parallel-bus" id="obj-bus">
+            <div class="wire-line"></div>
+            <div class="wire-line"></div>
+            <div class="wire-line"></div>
+            <div class="wire-line"></div>
+            <div class="wire-line"></div>
+            <div class="wire-line"></div>
+            <div class="wire-line"></div>
+            <div class="wire-line"></div>
+          </div>
+          <div class="tooltip" id="tt-bus" style="top:190px; left:160px;">8개의 차선으로 8비트가 한 번에 슝!</div>
+
+          <!-- UART TX Block -->
+          <div class="uart-box" id="obj-uart">
+            <div class="uart-title">UART TX (DUT)</div>
+
+            <div class="shift-reg-wrap" id="shift-cells">
+              <!-- Rendered via JS -->
+            </div>
+
+            <div class="fsm-box">
+              <div class="fsm-state" id="st-idle">IDLE</div>
+              <div class="fsm-state" id="st-start">START</div>
+              <div class="fsm-state" id="st-data">DATA</div>
+              <div class="fsm-state" id="st-stop">STOP</div>
+            </div>
+          </div>
+
+          <div class="tooltip" id="tt-uart" style="top:470px; left:60px;">시프트 레지스터: 비트들을 오른쪽으로 밀어냅니다.</div>
+
+          <!-- Serial Wire -->
+          <div class="serial-wire">
+            <div class="serial-label">TX_SERIAL (1 bit)</div>
+            <div class="wire-signal idle" id="wire-high"></div>
+            <div class="flying-bit" id="fly-bit"></div>
+          </div>
+
+          <!-- Receiver Device -->
+          <div class="rx-box" id="obj-rx">
+            <div class="rx-title">Receiver Device</div>
+            <div class="rx-sub">이 장치 안의 UART RX가 직렬 비트를 받아 다시 조립합니다.</div>
+            <div class="rx-core">
+              <div class="rx-core-title">UART RX</div>
+              <div class="rx-core-sub">serial -> byte</div>
+            </div>
+            <div class="rx-data-display" id="rx-display">--</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentMode = 1;
+  let currentStep = 1;
+  const stepCount = { 1: 1, 2: 10, 3: 1 };
+
+  // Elements
+  const els = {
+    btns: [document.getElementById('btn1'), document.getElementById('btn2'), document.getElementById('btn3')],
+    statusBox: document.getElementById('statusBox'),
+    stepIndicator: document.getElementById('step-indicator'),
+    btnPrev: document.getElementById('btn-prev'),
+    btnNext: document.getElementById('btn-next'),
+
+    bus: document.getElementById('obj-bus'),
+    ttBus: document.getElementById('tt-bus'),
+    ttUart: document.getElementById('tt-uart'),
+
+    cellsWrap: document.getElementById('shift-cells'),
+    fsmIdle: document.getElementById('st-idle'),
+    fsmStart: document.getElementById('st-start'),
+    fsmData: document.getElementById('st-data'),
+    fsmStop: document.getElementById('st-stop'),
+
+    wireHigh: document.getElementById('wire-high'),
+    flyBit: document.getElementById('fly-bit'),
+    rxDisplay: document.getElementById('rx-display')
+  };
+
+  // Data Payload 'H' = 0x48 = 01001000
+  // Index 0 is LSB(0), Index 7 is MSB(0). Order: 0 0 0 1 0 0 1 0
+  const dataBits = [0, 0, 0, 1, 0, 0, 1, 0];
+  let domCells = [];
+
+  function initCells() {
+    els.cellsWrap.innerHTML = '';
+    domCells = [];
+    for(let i=7; i>=0; i--) { // draw 7 to 0 (MSB on left, LSB on right)
+      let div = document.createElement('div');
+      div.className = 'bit-cell';
+      div.id = `cell-bit-${i}`;
+      div.innerHTML = `-<div class="bit-label">[${i}]</div>`;
+      els.cellsWrap.appendChild(div);
+      // store in array where index is bit position (so unshift to map correctly)
+      domCells.unshift(div);
+    }
+  }
+
+  function resetStyles() {
+    els.btns.forEach(b => b.classList.remove('active'));
+    els.bus.classList.remove('active');
+    els.ttBus.classList.remove('show');
+    els.ttUart.classList.remove('show');
+
+    domCells.forEach(cell => {
+      cell.classList.remove('loaded', 'shifting');
+      cell.childNodes[0].nodeValue = '-';
+    });
+
+    [els.fsmIdle, els.fsmStart, els.fsmData, els.fsmStop].forEach(el => el.classList.remove('active'));
+
+    els.wireHigh.style.opacity = '0.2'; // High (Idle)
+
+    // reset animation hack
+    els.flyBit.style.animation = 'none';
+    void els.flyBit.offsetWidth;
+
+    els.rxDisplay.innerText = '--';
+    els.rxDisplay.classList.remove('success');
+  }
+
+  function updateNav() {
+    const total = stepCount[currentMode];
+    els.stepIndicator.textContent = total === 1 ? '—' : `${currentStep} / ${total}`;
+    els.btnPrev.disabled = currentStep <= 1;
+    els.btnNext.disabled = currentStep >= total;
+  }
+
+  function fireBit(val, color) {
+    els.flyBit.innerText = val;
+    els.flyBit.style.background = color;
+    els.flyBit.style.boxShadow = `0 0 15px ${color}`;
+
+    els.flyBit.style.animation = 'none';
+    void els.flyBit.offsetWidth;
+    els.flyBit.style.animation = 'flyAcross 0.8s ease forwards';
+  }
+
+  function render() {
+    resetStyles();
+    els.btns[currentMode - 1].classList.add('active');
+    updateNav();
+
+    if (currentMode === 1) {
+      els.fsmIdle.classList.add('active');
+      els.bus.classList.add('active');
+      setTimeout(() => els.ttBus.classList.add('show'), 500);
+
+      // Show loaded after delay
+      setTimeout(() => {
+        dataBits.forEach((bit, i) => {
+          domCells[i].childNodes[0].nodeValue = bit;
+          domCells[i].classList.add('loaded');
+        });
+      }, 500);
+
+      els.statusBox.innerHTML = `
+        <strong style="color:var(--accent-purple)">짐 싣기 (TX_DATA & TX_VALID)</strong><br>
+        택배 회사(UART)에 편지('H'=0x48)를 넘기는 과정입니다.<br>
+        CPU는 8개의 차선(Bus)을 이용해 8개의 비트를 한 번에 왕창 넘깁니다.<br>
+        <i>(초기 상태: 아직 선(TX_SERIAL)은 1(High)을 유지하고 있습니다.)</i>
+      `;
+    }
+
+    else if (currentMode === 2) {
+      els.ttUart.classList.add('show');
+
+      // Common: Pre-load cells for visualization context
+      dataBits.forEach((bit, i) => {
+        domCells[i].childNodes[0].nodeValue = bit;
+        domCells[i].classList.add('loaded');
+      });
+
+      if (currentStep === 1) {
+        els.fsmStart.classList.add('active');
+        els.wireHigh.style.opacity = '0'; // Go Low!
+        fireBit('0', 'var(--accent-purple)');
+
+        els.statusBox.innerHTML = `
+          <strong style="color:var(--accent-purple)">Step 1: START Bit (상태: START)</strong><br>
+          "자, 지금부터 데이터 보낸다!" 하고 신호를 주기 위해 선을 0으로 확 끌어내립니다.<br>
+          반대편의 실제 수신기(UART RX)는 이 하강 신호를 보고 "프레임이 시작됐구나" 하고 샘플링 준비를 시작합니다.<br>
+          <i>Testbench에서는 이 RX 동작을 직접 샘플링해서 흉내 냅니다.</i>
+        `;
+      }
+      else if (currentStep >= 2 && currentStep <= 9) {
+        els.fsmData.classList.add('active');
+        const bitIndex = currentStep - 2; // 0 to 7
+
+        // Visual effect: highlight the shifting bit
+        domCells[bitIndex].classList.add('shifting');
+        // Gray out already shifted ones
+        for(let i=0; i<bitIndex; i++) {
+          domCells[i].style.opacity = '0.3';
+          domCells[i].classList.remove('loaded');
+        }
+
+        const bitVal = dataBits[bitIndex];
+        fireBit(bitVal, 'var(--accent-yellow)');
+        // if bit is 1, wire looks slightly brighter logic wise (simulation)
+        els.wireHigh.style.opacity = bitVal ? '0.5' : '0';
+
+        els.statusBox.innerHTML = `
+          <strong style="color:var(--accent-yellow)">Step ${currentStep}: DATA Bit [${bitIndex}] 전송 (상태: DATA)</strong><br>
+          시프트 레지스터(Shift Register)가 똑딱! 할 때마다 제일 오른쪽에 있는 비트(LSB)부터 하나씩 좁은 선으로 밀어냅니다.<br>
+          지금 보내는 값은 <b>${bitVal}</b> 입니다.
+        `;
+      }
+      else if (currentStep === 10) {
+        els.fsmStop.classList.add('active');
+        els.wireHigh.style.opacity = '0.5'; // High
+        fireBit('1', 'var(--accent-red)');
+
+        // all gray
+        domCells.forEach(c => { c.style.opacity = '0.3'; c.classList.remove('loaded'); });
+
+        els.statusBox.innerHTML = `
+          <strong style="color:var(--accent-red)">Step 10: STOP Bit (상태: STOP)</strong><br>
+          "나 할 말 다 했어!" 하고 선을 다시 1로 올려둡니다. (원래 상태 복귀)<br>
+          이제 UART는 다시 다음 데이터를 받을 준비(IDLE)를 합니다.
+        `;
+      }
+    }
+
+    else if (currentMode === 3) {
+      els.fsmIdle.classList.add('active');
+
+      // Simulate successful receive
+      els.wireHigh.style.opacity = '0.5';
+      setTimeout(() => {
+        els.rxDisplay.innerText = "'H'";
+        els.rxDisplay.classList.add('success');
+      }, 300);
+
+      els.statusBox.innerHTML = `
+        <strong style="color:var(--accent-green)">데이터 조립 완료! (UART RX / TB 직접 확인)</strong><br>
+        실제 시스템에서는 Receiver Device 안의 UART RX가 start bit를 보고 타이밍을 맞춘 뒤, 비트를 읽어 <b>1바이트</b>로 다시 조립합니다.<br>
+        이번 Testbench에서는 그 RX 역할을 직접 흉내 내며, <b>01001000</b>을 다시 모아 'H'로 복원합니다.<br>
+        <i>Testbench 직접 비교: "CPU가 보낸 'H'가 무사히 도착했군! PASS!"</i>
+      `;
+    }
+  }
+
+  function playMode(mode) {
+    currentMode = mode;
+    currentStep = 1;
+    // resetting cell opacity for safety
+    domCells.forEach(c => c.style.opacity = '1');
+    render();
+  }
+
+  function goStep(dir) {
+    const total = stepCount[currentMode];
+    currentStep = Math.max(1, Math.min(total, currentStep + dir));
+    render();
+  }
+
+  initCells();
+  playMode(1);
+</script>
+</body>
+</html>
