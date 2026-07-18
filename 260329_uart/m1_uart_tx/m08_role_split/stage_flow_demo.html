@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m08_role_split Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m08_role_split",
+  headline: "test, env, agent 역할 경계를 task 계층으로 드러낸다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m07_expected_path 대비: 데이터 경로는 유지하고 상위 역할 구조를 task 계층으로 묶는다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m07", href: "../m07_expected_path/stage_flow_demo.html" }
+  ],
+  focus: [
+    "uart_tx_test는 payload 준비, sequence 실행과 env 기동을 맡는다.",
+    "uart_tx_env는 agent와 scoreboard를, uart_tx_agent는 driver와 monitor를 각각 묶는다.",
+    "아직 class 기반 UVM이 아니라 역할 경계를 먼저 익히는 task 기반 중간 단계다."
+  ],
+  nodes: [
+    { id: "test", title: "uart_tx_test", text: "payload 준비와 전체 실행 시작", x: 4, y: 15, w: 15, h: 13, tone: "violet" },
+    { id: "sequence", title: "uart_tx_sequence", text: "stimulus와 expected 생성", x: 4, y: 42, w: 15, h: 13, tone: "amber" },
+    { id: "env", title: "uart_tx_env", text: "agent와 scoreboard 관리", x: 26, y: 15, w: 15, h: 13, tone: "teal" },
+    { id: "agent", title: "uart_tx_agent", text: "driver와 monitor 관리", x: 49, y: 15, w: 15, h: 13, tone: "cyan" },
+    { id: "driver", title: "uart_tx_driver", text: "stimulus queue로 DUT 구동", x: 75, y: 8, w: 14, h: 13, tone: "rose" },
+    { id: "monitor", title: "uart_tx_monitor", text: "serial output을 actual로 복원", x: 75, y: 34, w: 14, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uart_tx_scoreboard", text: "expected와 actual 비교", x: 49, y: 62, w: 18, h: 13, tone: "green" },
+    { id: "queues", title: "role queues", text: "r_DrvQ / r_ExpQ / r_MonQ", x: 23, y: 62, w: 18, h: 13, tone: "slate" }
+  ],
+  wires: [
+    { id: "test_sequence", from: "test", to: "sequence" },
+    { id: "test_env", from: "test", to: "env" },
+    { id: "env_agent", from: "env", to: "agent" },
+    { id: "env_scoreboard", from: "env", to: "scoreboard" },
+    { id: "agent_driver", from: "agent", to: "driver" },
+    { id: "agent_monitor", from: "agent", to: "monitor" },
+    { id: "sequence_queues", from: "sequence", to: "queues" },
+    { id: "monitor_queues", from: "monitor", to: "queues" },
+    { id: "queues_scoreboard", from: "queues", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "test 역할",
+      body: "test가 payload를 준비하고 sequence로 데이터를 만든 뒤 env 실행을 시작한다.",
+      activeNodes: ["test", "sequence", "env"],
+      activeWires: ["test_sequence", "test_env"],
+      code: "uart_tx_sequence();\nuart_tx_env(PAYLOAD_SIZE);",
+      packetWire: "test_sequence",
+      packet: "Hello"
+    },
+    {
+      title: "env 역할",
+      body: "env는 agent와 scoreboard를 병렬 실행하는 상위 검증 환경 역할을 맡는다.",
+      activeNodes: ["env", "agent", "scoreboard"],
+      activeWires: ["env_agent", "env_scoreboard"],
+      code: "fork\n    uart_tx_agent(num_bytes);\n    uart_tx_scoreboard(num_bytes);\njoin",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "agent 역할",
+      body: "agent는 한 UART interface를 구동하고 관찰하는 driver와 monitor를 묶는다.",
+      activeNodes: ["agent", "driver", "monitor"],
+      activeWires: ["agent_driver", "agent_monitor"],
+      code: "fork\n    uart_tx_driver(num_bytes);\n    uart_tx_monitor(num_bytes);\njoin",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "queue handoff 유지",
+      body: "상위 역할이 추가되어도 stimulus, expected, actual의 queue handoff와 비교 책임은 그대로 유지된다.",
+      activeNodes: ["sequence", "monitor", "queues", "scoreboard"],
+      activeWires: ["sequence_queues", "monitor_queues", "queues_scoreboard"],
+      code: "r_DrvQ.push_back(r_Payload[r_ByteIdx]);\nr_ExpQ.push_back(r_Payload[r_ByteIdx]);\nr_MonQ.push_back(r_Captured);",
+      packetWire: "queues_scoreboard",
+      packet: "48"
+    }
+  ],
+  snippet: "tb_top_v8.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
