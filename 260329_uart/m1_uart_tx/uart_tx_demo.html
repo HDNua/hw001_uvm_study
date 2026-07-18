@@ -42,6 +42,24 @@
     text-align: center;
   }
 
+  .index-link {
+    display: inline-flex;
+    margin-bottom: 16px;
+    padding: 8px 11px;
+    border: 1px solid rgba(59, 130, 246, 0.5);
+    border-radius: 10px;
+    background: rgba(30, 41, 59, 0.72);
+    color: #dbeafe;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+
+  .index-link:hover {
+    border-color: var(--accent-green);
+    color: #ecfdf5;
+  }
+
   h1 {
     margin: 0 0 10px;
     font-size: 32px;
@@ -557,6 +575,7 @@
 
 <div class="wrap">
   <header>
+    <a class="index-link" href="index.html">← 커리큘럼 목차</a>
     <h1>UART TX 톺아보기 (초등학생도 이해가능!)</h1>
     <div class="sub">
       CPU가 데이터를 써주면, UART 내부의 <b>상태 머신(FSM)</b>과 <b>Shift Register(시프트 레지스터)</b>가 어떻게<br>동작하여 8개의 비트를 하나의 좁은 선으로 차례차례 보내는지 직관적으로 알아봅니다.<br>

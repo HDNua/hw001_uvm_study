@@ -1,11 +1,12 @@
 # hw001 UVM Study
 
-UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용 프로젝트입니다. 현재 공개된 첫 단계는 SystemVerilog 테스트벤치가 DUT의 직렬 출력을 직접 비교하는 `m01_pure`입니다.
+UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용 프로젝트입니다. `m01_pure`의 직접 구동·검사 흐름에서 시작해 `m02_task`에서는 반복 동작을 task로 분리합니다.
 
 ## 프로젝트 구조
 
 ```text
 260329_uart/m1_uart_tx/
+├── index.html
 ├── m00_rtl/
 │   └── UART_Tx.sv
 ├── m01_pure/
@@ -15,13 +16,22 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 │   ├── tb/
 │   │   └── tb_top_v1.sv
 │   └── stage_flow_demo.html
+├── m02_task/
+│   ├── sim/
+│   │   ├── run_xsim.ps1
+│   │   └── view_xsim.ps1
+│   ├── tb/
+│   │   └── tb_top_v2.sv
+│   └── stage_flow_demo.html
 └── uart_tx_demo.html
 ```
 
 - `m00_rtl`: 단계들이 공통으로 사용하는 UART TX RTL
+- `index.html`: UART TX 동작 데모와 현재 검증 단계를 연결하는 커리큘럼 목차
 - `m01_pure`: 클래스나 UVM 없이 작성한 첫 번째 검증 단계
+- `m02_task`: 구동과 수신 동작을 `send_byte`/`recv_byte` task로 분리한 단계
 - `uart_tx_demo.html`: UART TX의 동작을 살펴보는 공용 인터랙티브 데모
-- `stage_flow_demo.html`: `m01_pure`의 검증 흐름 설명
+- `stage_flow_demo.html`: 각 단계의 검증 흐름 설명
 
 ## 필요 환경
 
@@ -33,10 +43,10 @@ Vivado/XSim은 macOS를 지원하지 않으므로 이 흐름은 Windows 또는 V
 
 ## 시뮬레이션 실행
 
-저장소 루트에서 다음 명령을 실행합니다.
+저장소 루트에서 실행할 단계의 `sim` 디렉터리로 이동합니다. 예를 들어 `m02_task`는 다음과 같이 실행합니다.
 
 ```powershell
-cd .\260329_uart\m1_uart_tx\m01_pure\sim
+cd .\260329_uart\m1_uart_tx\m02_task\sim
 .\run_xsim.ps1
 ```
 
@@ -59,10 +69,12 @@ $env:VIVADO_BIN = '<xvlog, xelab, xsim이 있는 디렉터리>'
 
 브라우저에서 다음 파일을 직접 열 수 있습니다.
 
+- `260329_uart/m1_uart_tx/index.html`
 - `260329_uart/m1_uart_tx/uart_tx_demo.html`
 - `260329_uart/m1_uart_tx/m01_pure/stage_flow_demo.html`
+- `260329_uart/m1_uart_tx/m02_task/stage_flow_demo.html`
 
-두 데모는 외부 웹 폰트 없이 로컬 시스템 글꼴만 사용합니다.
+각 데모는 외부 웹 폰트 없이 로컬 시스템 글꼴만 사용합니다.
 
 ## 라이선스
 

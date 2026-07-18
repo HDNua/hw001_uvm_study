@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>UART TX 검증 커리큘럼</title>
+<style>
+:root {
+  --bg: #0f1419;
+  --panel: #171e26;
+  --panel-hover: #1b2530;
+  --line: rgba(153, 170, 187, .28);
+  --text: #edf4fa;
+  --muted: #a7b6c4;
+  --blue: #5aa7ff;
+  --green: #39c88f;
+  --violet: #a894ff;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 82% 4%, rgba(90, 167, 255, .11), transparent 32rem),
+    var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 24px 56px;
+}
+header {
+  margin-bottom: 28px;
+}
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.15;
+}
+.sub {
+  max-width: 780px;
+  margin: 14px 0 0;
+  color: #c7d7e6;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.flow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.flow span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(23, 30, 38, .78);
+}
+.flow b {
+  color: var(--blue);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.card {
+  position: relative;
+  display: flex;
+  min-height: 280px;
+  flex-direction: column;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--tone);
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--tone) 65%, transparent);
+  background: var(--panel-hover);
+}
+.card:focus-visible {
+  outline: 2px solid var(--tone);
+  outline-offset: 3px;
+}
+.badge {
+  align-self: flex-start;
+  min-width: 42px;
+  margin-bottom: 18px;
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: color-mix(in srgb, var(--tone) 80%, white);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+h2 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+.card p {
+  margin: 0;
+  color: #c7d7e6;
+  font-size: 13px;
+  line-height: 1.62;
+}
+.points {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.points span {
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in srgb, var(--tone) 55%, transparent);
+}
+.open {
+  margin-top: auto;
+  color: color-mix(in srgb, var(--tone) 72%, white);
+  font-size: 12px;
+  font-weight: 900;
+}
+footer {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+@media (max-width: 840px) {
+  .grid { grid-template-columns: 1fr; }
+  .card { min-height: 0; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 28px 16px 40px; }
+  .flow { align-items: flex-start; flex-direction: column; }
+  .flow b { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">hw001 · UART TX</p>
+    <h1>UART TX 검증 커리큘럼</h1>
+    <p class="sub">UART TX의 동작부터 시작해 SystemVerilog 테스트벤치의 역할을 단계별로 분리합니다. 각 단계는 바로 이전 단계에서 무엇이 달라졌는지 보여줍니다.</p>
+  </header>
+
+  <main>
+    <div class="flow" aria-label="현재 학습 순서">
+      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span>
+    </div>
+
+    <div class="grid">
+      <a class="card" style="--tone: var(--blue)" href="uart_tx_demo.html">
+        <span class="badge">RTL</span>
+        <h2>UART TX 동작 데모</h2>
+        <p>병렬 데이터가 UART 프레임으로 변환되고 수신 측에서 다시 한 바이트로 조립되는 과정을 살펴봅니다.</p>
+        <div class="points">
+          <span>Parallel load와 shift register</span>
+          <span>Start·data·stop bit 전송</span>
+          <span>수신 측 샘플링과 byte 복원</span>
+        </div>
+        <span class="open">동작 데모 열기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--violet)" href="m01_pure/stage_flow_demo.html">
+        <span class="badge">m01</span>
+        <h2>m01_pure</h2>
+        <p>한 initial 블록에서 DUT를 직접 구동하고 직렬 출력을 직접 샘플링해 확인합니다.</p>
+        <div class="points">
+          <span>DUT pin 직접 구동</span>
+          <span>직렬 출력 직접 샘플링</span>
+          <span>한 흐름 안에서 결과 비교</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--green)" href="m02_task/stage_flow_demo.html">
+        <span class="badge">m02</span>
+        <h2>m02_task</h2>
+        <p>반복되는 구동과 수신 코드를 send_byte·recv_byte task로 분리해 첫 역할 경계를 만듭니다.</p>
+        <div class="points">
+          <span>send_byte로 구동 캡슐화</span>
+          <span>recv_byte로 수신 캡슐화</span>
+          <span>순차 호출 구조의 한계 확인</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+    </div>
+  </main>
+
+  <footer>새 검증 단계는 이전과 실행 검증이 완료된 뒤 이 목차에 순서대로 추가합니다.</footer>
+</div>
+</body>
+</html>
