@@ -4,366 +4,24 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>m01_pure Flow Demo</title>
-<style>
-:root {
-  --bg: #0f1419;
-  --panel: #171e26;
-  --panel-2: #11171e;
-  --panel-3: #0c1117;
-  --line: rgba(153, 170, 187, .28);
-  --text: #edf4fa;
-  --muted: #a7b6c4;
-  --blue: #5aa7ff;
-  --green: #39c88f;
-  --amber: #f0bf61;
-  --rose: #ff7594;
-  --violet: #a894ff;
-  --cyan: #69dce9;
-  --teal: #43d0bd;
-  --slate: #8fa3b8;
-  --active: #36c98f;
-}
-* { box-sizing: border-box; }
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: #0f1419;
-  color: var(--text);
-  font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
-}
-.wrap {
-  max-width: 1440px;
-  margin: 0 auto;
-  padding: 24px;
-}
-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 16px;
-  align-items: end;
-  margin-bottom: 16px;
-}
-h1 {
-  margin: 0;
-  font-size: 28px;
-  line-height: 1.2;
-  letter-spacing: 0;
-}
-.headline {
-  margin: 8px 0 0;
-  max-width: 860px;
-  color: #c7d7e6;
-  font-size: 14px;
-  line-height: 1.65;
-}
-.top-actions {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-.pill,
-.demo-link {
-  border: 1px solid rgba(90, 167, 255, .38);
-  background: rgba(90, 167, 255, .12);
-  color: #dcecff;
-  border-radius: 8px;
-  padding: 8px 10px;
-  font-size: 12px;
-  font-weight: 800;
-  text-decoration: none;
-  white-space: nowrap;
-}
-.demo-link {
-  cursor: pointer;
-  background: #101820;
-  text-align: center;
-}
-.layout {
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-.side {
-  padding: 14px;
-  position: sticky;
-  top: 12px;
-}
-h2 {
-  margin: 0 0 10px;
-  padding-bottom: 9px;
-  border-bottom: 1px solid rgba(255, 255, 255, .08);
-  font-size: 16px;
-  letter-spacing: 0;
-}
-.step-list,
-.focus-list {
-  display: grid;
-  gap: 8px;
-}
-.step-btn {
-  display: block;
-  width: 100%;
-  border: 1px solid rgba(153, 170, 187, .24);
-  background: #10161d;
-  color: var(--text);
-  border-radius: 8px;
-  padding: 10px 11px;
-  text-align: left;
-  text-decoration: none;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 800;
-}
-.step-btn.active {
-  border-color: var(--blue);
-  background: rgba(90, 167, 255, .16);
-  box-shadow: inset 3px 0 0 var(--blue);
-}
-.step-btn:hover,
-.demo-link:hover {
-  border-color: rgba(90, 167, 255, .7);
-}
-.section-gap {
-  margin-top: 14px;
-}
-.focus-card,
-.detail-card {
-  background: var(--panel-2);
-  border: 1px solid rgba(153, 170, 187, .22);
-  border-radius: 8px;
-  padding: 12px;
-}
-.focus-card strong,
-.detail-card strong {
-  display: block;
-  margin-bottom: 7px;
-  font-size: 13px;
-}
-.focus-card p,
-.detail-card p {
-  margin: 0;
-  color: #c7d7e6;
-  font-size: 13px;
-  line-height: 1.55;
-}
-.focus-list div {
-  color: #c9d7e3;
-  font-size: 12px;
-  line-height: 1.45;
-  padding-left: 12px;
-  border-left: 2px solid rgba(90, 167, 255, .5);
-}
-.main {
-  min-width: 0;
-}
-.board-shell {
-  padding: 16px;
-}
-.board-scroll {
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-.board {
-  position: relative;
-  min-width: 980px;
-  height: 580px;
-  border: 1px dashed rgba(153, 170, 187, .22);
-  border-radius: 8px;
-  background: #0f151c;
-  overflow: hidden;
-}
-.lane-label {
-  position: absolute;
-  top: 16px;
-  left: 24px;
-  z-index: 2;
-  border: 1px solid rgba(90, 167, 255, .35);
-  background: #0b1219;
-  border-radius: 8px;
-  padding: 5px 9px;
-  font-size: 11px;
-  font-weight: 900;
-  color: #dcecff;
-}
-.lane-label.check {
-  left: auto;
-  right: 24px;
-  border-color: rgba(57, 200, 143, .35);
-  color: #dcfff1;
-}
-.wire-layer {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 1;
-}
-.wire {
-  stroke: rgba(148, 164, 181, .52);
-  stroke-width: 2.1;
-  stroke-linecap: round;
-}
-.arrow-head {
-  fill: none;
-  stroke: rgba(148, 164, 181, .62);
-  stroke-width: 2.1;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.wire-group.active .wire,
-.wire-group.active .arrow-head {
-  stroke: var(--active);
-}
-.node {
-  position: absolute;
-  z-index: 3;
-  border: 1px solid rgba(153, 170, 187, .32);
-  background: rgba(17, 23, 30, .94);
-  border-radius: 8px;
-  padding: 12px;
-  min-height: 72px;
-  box-shadow: 0 12px 24px rgba(0,0,0,.2);
-  transition: border-color .15s, box-shadow .15s, transform .15s;
-}
-.node.active {
-  border-color: var(--tone);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--tone) 65%, transparent), 0 16px 30px rgba(0,0,0,.28);
-  transform: translateY(-1px);
-}
-.node-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  font-size: 13px;
-  font-weight: 900;
-}
-.dot {
-  width: 9px;
-  height: 9px;
-  flex: 0 0 9px;
-  border-radius: 50%;
-  background: var(--tone);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--tone) 80%, transparent);
-}
-.node-text {
-  color: #cbd8e3;
-  font-size: 12px;
-  line-height: 1.45;
-}
-.packet {
-  position: absolute;
-  z-index: 5;
-  min-width: 34px;
-  height: 26px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  padding: 0 8px;
-  border: 1px solid var(--amber);
-  border-radius: 8px;
-  background: rgba(61, 45, 12, .95);
-  color: #fff5ca;
-  font-size: 12px;
-  font-weight: 900;
-  box-shadow: 0 10px 24px rgba(0,0,0,.28);
-  transform: translate(-50%, -50%);
-}
-.payload-row {
-  position: absolute;
-  z-index: 4;
-  left: 4%;
-  bottom: 18px;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  background: rgba(12,17,23,.9);
-  border: 1px solid rgba(153, 170, 187, .24);
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-.payload-row .byte {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 28px;
-  border: 1px solid rgba(90,167,255,.45);
-  border-radius: 8px;
-  background: rgba(90,167,255,.14);
-  color: #e8f3ff;
-  font-size: 12px;
-  font-weight: 900;
-}
-.payload-label {
-  color: #bcd0df;
-  font-size: 12px;
-  font-weight: 800;
-  padding-right: 2px;
-}
-.below {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 12px;
-  margin-top: 12px;
-}
-.detail-card pre {
-  margin: 8px 0 0;
-  min-height: 92px;
-  overflow: auto;
-  white-space: pre-wrap;
-  color: #d9ecff;
-  font: 12px/1.5 Consolas, "Cascadia Mono", monospace;
-}
-.detail-link {
-  display: inline-block;
-  margin-top: 10px;
-  color: #dcecff;
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 850;
-  border-bottom: 1px solid rgba(90, 167, 255, .5);
-}
-@media (max-width: 980px) {
-  .wrap { padding: 16px; }
-  header { grid-template-columns: 1fr; }
-  .top-actions { justify-content: flex-start; }
-  .layout { grid-template-columns: 1fr; }
-  .side { position: static; }
-  .below { grid-template-columns: 1fr; }
-}
-</style>
+<link rel="stylesheet" href="../stage_flow.css" />
 </head>
 <body>
 <div class="wrap">
   <header>
     <div>
-      <h1>m01_pure Flow Demo</h1>
-      <p class="headline">한 initial 블록에서 UART TX를 직접 구동하고 직접 확인한다.</p>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
     </div>
-    <div class="top-actions">
-      <span class="pill">m01_pure</span>
-      <a class="demo-link" href="../index.html">목차</a>
-      <a class="demo-link" href="../uart_tx_demo.html">UART TX 동작 데모</a>
-      <a class="demo-link" href="../m02_task/stage_flow_demo.html">m02 &gt;</a>
-    </div>
+    <div class="top-actions" id="topActions"></div>
   </header>
 
   <div class="layout">
     <aside class="panel side">
       <h2>Focus</h2>
       <div class="focus-card">
-        <strong>핵심 목표</strong>
-        <p>테스트벤치가 DUT를 직접 구동하고 결과를 직접 확인한다.</p>
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
       </div>
       <div class="focus-list section-gap" id="focusList"></div>
 
@@ -379,7 +37,7 @@ h2 {
           <div class="board" id="board">
             <div class="lane-label">STIMULUS / STRUCTURE</div>
             <div class="lane-label check">OBSERVE / CHECK</div>
-            <svg class="wire-layer" id="wireLayer"></svg>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
             <div id="nodes"></div>
             <div class="packet" id="packet"></div>
             <div class="payload-row" id="payloadRow"></div>
@@ -391,11 +49,10 @@ h2 {
         <div class="detail-card">
           <strong id="detailTitle"></strong>
           <p id="detailBody"></p>
-
         </div>
         <div class="detail-card">
           <strong>Code Focus</strong>
-          <p>관련 파일: tb_top_v1.sv</p>
+          <p>관련 파일: <span id="snippetName"></span></p>
           <pre id="codeBlock"></pre>
         </div>
       </section>
@@ -404,177 +61,76 @@ h2 {
 </div>
 
 <script>
-const STAGE = {"focus":["TB_Top이 DUT pin을 직접 잡고 한 바이트를 보낸다.","send와 receive/check 코드가 아직 같은 흐름 안에 있다.","구조는 가장 짧지만 역할 경계가 거의 보이지 않는다."],"nodes":[{"id":"tb","title":"TB_Top initial","text":"clock/reset, stimulus, check가 한 파일 안에 모여 있음","x":5,"y":20,"w":20,"h":14,"tone":"violet"},{"id":"drive","title":"inline drive","text":"r_TxData/r_TxValid를 직접 토글","x":32,"y":20,"w":17,"h":14,"tone":"rose"},{"id":"dut","title":"UART_Tx DUT","text":"byte를 serial waveform으로 변환","x":58,"y":20,"w":17,"h":14,"tone":"cyan"},{"id":"check","title":"inline capture/check","text":"w_TxSerial을 직접 샘플링하고 expected와 비교","x":78,"y":20,"w":17,"h":14,"tone":"green"},{"id":"wave","title":"XSim waveform","text":"run_xsim.ps1이 전체 계층 파형을 WDB로 기록","x":39,"y":58,"w":22,"h":12,"tone":"slate"}],"wires":[{"id":"tb_drive","from":"tb","to":"drive","label":""},{"id":"drive_dut","from":"drive","to":"dut","label":""},{"id":"dut_check","from":"dut","to":"check","label":""},{"id":"dut_wave","from":"dut","to":"wave","label":""}],"steps":[{"title":"테스트 시작","body":"TB_Top initial 블록이 reset을 걸고 모든 동작을 직접 순서대로 호출한다.","activeNodes":["tb"],"activeWires":[],"code":"initial begin\n    reset...\n    drive...\n    capture...\nend","packetWire":null,"packet":""},{"title":"직접 구동","body":"DUT 입력 pin을 testbench 코드가 바로 바꾼다.","activeNodes":["tb","drive"],"activeWires":["tb_drive"],"code":"r_TxData  = 8\u0027h48;\nr_TxValid = 1\u0027b1;","packetWire":"tb_drive","packet":"48"},{"title":"DUT 변환","body":"UART_Tx는 parallel byte를 serial bit stream으로 내보낸다.","activeNodes":["drive","dut"],"activeWires":["drive_dut"],"code":"UART_Tx I_UART_Tx (...);","packetWire":"drive_dut","packet":"48"},{"title":"직접 확인","body":"수신과 비교도 같은 testbench 코드가 수행한다.","activeNodes":["dut","check"],"activeWires":["dut_check"],"code":"if (r_Captured == 8\u0027h48)\n    $display(\"PASS\");","packetWire":"dut_check","packet":"48"}],"payload":["48","65","6c","6c","6f"]};
-const board = document.getElementById("board");
-const nodesRoot = document.getElementById("nodes");
-const wireLayer = document.getElementById("wireLayer");
-const stepList = document.getElementById("stepList");
-const focusList = document.getElementById("focusList");
-const payloadRow = document.getElementById("payloadRow");
-const packet = document.getElementById("packet");
-const detailTitle = document.getElementById("detailTitle");
-const detailBody = document.getElementById("detailBody");
-const codeBlock = document.getElementById("codeBlock");
-let wireGeometry = new Map();
-let currentStep = 0;
-
-function toneColor(tone) {
-  const map = {
-    violet: "#a894ff",
-    amber: "#f0bf61",
-    blue: "#5aa7ff",
-    rose: "#ff7594",
-    cyan: "#69dce9",
-    green: "#39c88f",
-    teal: "#43d0bd",
-    slate: "#8fa3b8"
-  };
-  return map[tone] || map.slate;
-}
-
-function renderFocus() {
-  focusList.innerHTML = STAGE.focus.map(function(text) {
-    return '<div>' + text + '</div>';
-  }).join("");
-}
-
-function renderPayload() {
-  payloadRow.innerHTML = '<span class="payload-label">payload</span>' +
-    STAGE.payload.map(function(byte) { return '<span class="byte">' + byte + '</span>'; }).join("");
-}
-
-function renderNodes() {
-  nodesRoot.innerHTML = STAGE.nodes.map(function(n) {
-    return '<div class="node" id="node-' + n.id + '" data-node="' + n.id + '" ' +
-      'style="left:' + n.x + '%;top:' + n.y + '%;width:' + n.w + '%;height:' + n.h + '%;--tone:' + toneColor(n.tone) + '">' +
-      '<div class="node-title"><span class="dot"></span><span>' + n.title + '</span></div>' +
-      '<div class="node-text">' + n.text + '</div>' +
-      '</div>';
-  }).join("");
-}
-
-function renderSteps() {
-  stepList.innerHTML = STAGE.steps.map(function(s, idx) {
-    return '<button class="step-btn" type="button" data-step="' + idx + '">' +
-      (idx + 1) + '. ' + s.title +
-      '</button>';
-  }).join("");
-  stepList.querySelectorAll("button").forEach(function(btn) {
-    btn.addEventListener("click", function() {
-      setStep(Number(btn.dataset.step));
-    });
-  });
-}
-
-function edgePoint(fromRect, toRect, boardRect) {
-  const fx = fromRect.left + fromRect.width / 2;
-  const fy = fromRect.top + fromRect.height / 2;
-  const tx = toRect.left + toRect.width / 2;
-  const ty = toRect.top + toRect.height / 2;
-  const dx = tx - fx;
-  const dy = ty - fy;
-  let x;
-  let y;
-  if (Math.abs(dx / Math.max(fromRect.width, 1)) > Math.abs(dy / Math.max(fromRect.height, 1))) {
-    x = dx >= 0 ? fromRect.right : fromRect.left;
-    y = fy + dy * (Math.abs(x - fx) / Math.max(Math.abs(dx), 0.001));
-  } else {
-    y = dy >= 0 ? fromRect.bottom : fromRect.top;
-    x = fx + dx * (Math.abs(y - fy) / Math.max(Math.abs(dy), 0.001));
-  }
-  return { x: x - boardRect.left, y: y - boardRect.top };
-}
-
-function arrowPoints(x1, y1, x2, y2) {
-  const angle = Math.atan2(y2 - y1, x2 - x1);
-  const size = 9;
-  const spread = Math.PI / 7;
-  const a1 = angle + Math.PI - spread;
-  const a2 = angle + Math.PI + spread;
-  return [
-    [x2 + Math.cos(a1) * size, y2 + Math.sin(a1) * size],
-    [x2, y2],
-    [x2 + Math.cos(a2) * size, y2 + Math.sin(a2) * size],
-  ];
-}
-
-function drawWires() {
-  const boardRect = board.getBoundingClientRect();
-  wireLayer.setAttribute("viewBox", "0 0 " + boardRect.width + " " + boardRect.height);
-  wireLayer.innerHTML = "";
-  wireGeometry = new Map();
-  STAGE.wires.forEach(function(w) {
-    const fromEl = document.getElementById("node-" + w.from);
-    const toEl = document.getElementById("node-" + w.to);
-    if (!fromEl || !toEl) return;
-    const fromRect = fromEl.getBoundingClientRect();
-    const toRect = toEl.getBoundingClientRect();
-    const p1 = edgePoint(fromRect, toRect, boardRect);
-    const p2 = edgePoint(toRect, fromRect, boardRect);
-    const points = arrowPoints(p1.x, p1.y, p2.x, p2.y);
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    group.setAttribute("class", "wire-group");
-    group.setAttribute("data-wire", w.id);
-    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
-    line.setAttribute("class", "wire");
-    line.setAttribute("x1", p1.x);
-    line.setAttribute("y1", p1.y);
-    line.setAttribute("x2", p2.x);
-    line.setAttribute("y2", p2.y);
-    const head = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-    head.setAttribute("class", "arrow-head");
-    head.setAttribute("points", points.map(function(p) { return p[0] + "," + p[1]; }).join(" "));
-    group.appendChild(line);
-    group.appendChild(head);
-    wireLayer.appendChild(group);
-    wireGeometry.set(w.id, { x1: p1.x, y1: p1.y, x2: p2.x, y2: p2.y });
-  });
-  placePacket(STAGE.steps[currentStep]);
-}
-
-function placePacket(step) {
-  if (!step || !step.packetWire || !wireGeometry.has(step.packetWire)) {
-    packet.style.display = "none";
-    return;
-  }
-  const g = wireGeometry.get(step.packetWire);
-  const t = 0.54;
-  packet.textContent = step.packet || "tx";
-  packet.style.left = (g.x1 + (g.x2 - g.x1) * t) + "px";
-  packet.style.top = (g.y1 + (g.y2 - g.y1) * t) + "px";
-  packet.style.display = "flex";
-}
-
-function setStep(idx) {
-  currentStep = idx;
-  const s = STAGE.steps[idx];
-  document.querySelectorAll(".step-btn").forEach(function(btn) {
-    btn.classList.toggle("active", Number(btn.dataset.step) === idx);
-  });
-  document.querySelectorAll(".node").forEach(function(el) {
-    el.classList.toggle("active", s.activeNodes.indexOf(el.dataset.node) >= 0);
-  });
-  document.querySelectorAll(".wire-group").forEach(function(el) {
-    el.classList.toggle("active", s.activeWires.indexOf(el.dataset.wire) >= 0);
-  });
-  detailTitle.textContent = s.title;
-  detailBody.textContent = s.body;
-  codeBlock.textContent = s.code;
-  placePacket(s);
-}
-
-renderFocus();
-renderPayload();
-renderNodes();
-renderSteps();
-requestAnimationFrame(function() {
-  drawWires();
-  setStep(0);
-});
-window.addEventListener("resize", function() {
-  drawWires();
-  setStep(currentStep);
-});
+window.STAGE = {
+  title: "m01_pure",
+  headline: "한 initial 블록에서 UART TX를 직접 구동하고 직접 확인한다.",
+  focusLabel: "핵심 목표",
+  focusSummary: "테스트벤치가 DUT를 직접 구동하고 결과를 직접 확인한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "m02 →", href: "../m02_task/stage_flow_demo.html" }
+  ],
+  focus: [
+    "TB_Top이 DUT pin을 직접 잡고 한 바이트를 보낸다.",
+    "send와 receive/check 코드가 아직 같은 흐름 안에 있다.",
+    "구조는 가장 짧지만 역할 경계가 거의 보이지 않는다."
+  ],
+  nodes: [
+    { id: "tb", title: "TB_Top initial", text: "clock/reset, stimulus, check가 한 파일 안에 모여 있음", x: 5, y: 20, w: 20, h: 14, tone: "violet" },
+    { id: "drive", title: "inline drive", text: "r_TxData/r_TxValid를 직접 토글", x: 32, y: 20, w: 17, h: 14, tone: "rose" },
+    { id: "dut", title: "UART_Tx DUT", text: "byte를 serial waveform으로 변환", x: 58, y: 20, w: 17, h: 14, tone: "cyan" },
+    { id: "check", title: "inline capture/check", text: "w_TxSerial을 직접 샘플링하고 expected와 비교", x: 78, y: 20, w: 17, h: 14, tone: "green" },
+    { id: "wave", title: "XSim waveform", text: "run_xsim.ps1이 전체 계층 파형을 WDB로 기록", x: 39, y: 58, w: 22, h: 12, tone: "slate" }
+  ],
+  wires: [
+    { id: "tb_drive", from: "tb", to: "drive" },
+    { id: "drive_dut", from: "drive", to: "dut" },
+    { id: "dut_check", from: "dut", to: "check" },
+    { id: "dut_wave", from: "dut", to: "wave" }
+  ],
+  steps: [
+    {
+      title: "테스트 시작",
+      body: "TB_Top initial 블록이 reset을 걸고 모든 동작을 직접 순서대로 호출한다.",
+      activeNodes: ["tb"],
+      activeWires: [],
+      code: "initial begin\n    reset...\n    drive...\n    capture...\nend",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "직접 구동",
+      body: "DUT 입력 pin을 testbench 코드가 바로 바꾼다.",
+      activeNodes: ["tb", "drive"],
+      activeWires: ["tb_drive"],
+      code: "r_TxData  = 8'h48;\nr_TxValid = 1'b1;",
+      packetWire: "tb_drive",
+      packet: "48"
+    },
+    {
+      title: "DUT 변환",
+      body: "UART_Tx는 parallel byte를 serial bit stream으로 내보낸다.",
+      activeNodes: ["drive", "dut"],
+      activeWires: ["drive_dut"],
+      code: "UART_Tx I_UART_Tx (...);",
+      packetWire: "drive_dut",
+      packet: "48"
+    },
+    {
+      title: "직접 확인",
+      body: "수신과 비교도 같은 testbench 코드가 수행한다.",
+      activeNodes: ["dut", "check"],
+      activeWires: ["dut_check"],
+      code: "if (r_Captured == 8'h48)\n    $display(\"PASS\");",
+      packetWire: "dut_check",
+      packet: "48"
+    }
+  ],
+  snippet: "tb_top_v1.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
 </script>
+<script src="../stage_flow.js"></script>
 </body>
 </html>

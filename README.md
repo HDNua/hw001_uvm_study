@@ -7,6 +7,8 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 ```text
 260329_uart/m1_uart_tx/
 ├── index.html
+├── stage_flow.css
+├── stage_flow.js
 ├── m00_rtl/
 │   └── UART_Tx.sv
 ├── m01_pure/
@@ -28,10 +30,11 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 
 - `m00_rtl`: 단계들이 공통으로 사용하는 UART TX RTL
 - `index.html`: UART TX 동작 데모와 현재 검증 단계를 연결하는 커리큘럼 목차
+- `stage_flow.css`, `stage_flow.js`: 모든 단계 흐름 데모가 공유하는 화면 형식과 상호작용
 - `m01_pure`: 클래스나 UVM 없이 작성한 첫 번째 검증 단계
 - `m02_task`: 구동과 수신 동작을 `send_byte`/`recv_byte` task로 분리한 단계
 - `uart_tx_demo.html`: UART TX의 동작을 살펴보는 공용 인터랙티브 데모
-- `stage_flow_demo.html`: 각 단계의 검증 흐름 설명
+- `stage_flow_demo.html`: 공통 템플릿에 단계별 `STAGE` 데이터만 정의하는 검증 흐름 설명
 
 ## 필요 환경
 
