@@ -19,6 +19,7 @@
   --cyan: #69dce9;
   --slate: #8fa3b8;
   --teal: #43d0bd;
+  --rose: #ff7594;
 }
 * { box-sizing: border-box; }
 body {
@@ -185,7 +186,7 @@ footer {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span><b>→</b><span>m06 sequence 분리</span>
+      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span><b>→</b><span>m06 sequence 분리</span><b>→</b><span>m07 expected 경로 분리</span>
     </div>
 
     <div class="grid">
@@ -269,6 +270,18 @@ footer {
           <span>sequence가 driver queue에 push</span>
           <span>driver의 payload 직접 참조 제거</span>
           <span>expected ownership의 다음 과제 확인</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--rose)" href="m07_expected_path/stage_flow_demo.html">
+        <span class="badge">m07</span>
+        <h2>m07_expected_path</h2>
+        <p>sequence가 stimulus와 expected를 함께 분배해 scoreboard의 payload 직접 참조를 제거합니다.</p>
+        <div class="points">
+          <span>driver용 r_DrvQ와 expected용 r_ExpQ</span>
+          <span>scoreboard는 expected·actual queue만 비교</span>
+          <span>검증 데이터 양쪽 경로의 대칭 구조</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>

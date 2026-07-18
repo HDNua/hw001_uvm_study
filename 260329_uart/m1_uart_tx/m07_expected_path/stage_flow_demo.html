@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m07_expected_path Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m07_expected_path",
+  headline: "sequence가 stimulus와 expected 경로를 함께 만든다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m06_sequence 대비: stimulus뿐 아니라 expected도 별도 queue로 scoreboard에 전달한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m06", href: "../m06_sequence/stage_flow_demo.html" }
+  ],
+  focus: [
+    "sequence는 같은 payload를 r_DrvQ와 r_ExpQ에 함께 push한다.",
+    "driver는 stimulus queue만, scoreboard는 expected와 actual queue만 바라본다.",
+    "scoreboard에서 payload 직접 참조가 사라져 비교 책임만 남는다."
+  ],
+  nodes: [
+    { id: "sequence", title: "sequence task", text: "stimulus와 expected를 함께 생성", x: 4, y: 20, w: 17, h: 14, tone: "amber" },
+    { id: "drvq", title: "r_DrvQ", text: "driver stimulus queue", x: 27, y: 12, w: 14, h: 12, tone: "slate" },
+    { id: "driver", title: "driver task", text: "queue에서 pop해 DUT 구동", x: 47, y: 12, w: 15, h: 12, tone: "rose" },
+    { id: "dut", title: "UART_Tx DUT", text: "serial output 생성", x: 67, y: 12, w: 14, h: 12, tone: "cyan" },
+    { id: "monitor", title: "monitor task", text: "actual byte 복원", x: 82, y: 34, w: 14, h: 12, tone: "green" },
+    { id: "monq", title: "r_MonQ", text: "scoreboard actual queue", x: 67, y: 62, w: 14, h: 12, tone: "slate" },
+    { id: "scoreboard", title: "scoreboard task", text: "expected와 actual queue 비교", x: 43, y: 62, w: 18, h: 13, tone: "green" },
+    { id: "expq", title: "r_ExpQ", text: "scoreboard expected queue", x: 20, y: 62, w: 15, h: 12, tone: "amber" }
+  ],
+  wires: [
+    { id: "sequence_drvq", from: "sequence", to: "drvq" },
+    { id: "sequence_expq", from: "sequence", to: "expq" },
+    { id: "drvq_driver", from: "drvq", to: "driver" },
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "dut_monitor", from: "dut", to: "monitor" },
+    { id: "monitor_monq", from: "monitor", to: "monq" },
+    { id: "monq_scoreboard", from: "monq", to: "scoreboard" },
+    { id: "expq_scoreboard", from: "expq", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "두 경로 생성",
+      body: "sequence는 같은 payload를 stimulus와 expected queue에 함께 분배한다.",
+      activeNodes: ["sequence", "drvq", "expq"],
+      activeWires: ["sequence_drvq", "sequence_expq"],
+      code: "r_DrvQ.push_back(r_Payload[r_ByteIdx]);\nr_ExpQ.push_back(r_Payload[r_ByteIdx]);",
+      packetWire: "sequence_drvq",
+      packet: "48"
+    },
+    {
+      title: "stimulus 경로",
+      body: "driver는 r_DrvQ에서 꺼낸 byte만 DUT에 구동한다.",
+      activeNodes: ["drvq", "driver", "dut"],
+      activeWires: ["drvq_driver", "driver_dut"],
+      code: "r_Data = r_DrvQ.pop_front();\nr_TxData <= r_Data;",
+      packetWire: "drvq_driver",
+      packet: "48"
+    },
+    {
+      title: "actual 경로",
+      body: "monitor는 serial output을 복원해 actual queue에 넣는다.",
+      activeNodes: ["dut", "monitor", "monq"],
+      activeWires: ["dut_monitor", "monitor_monq"],
+      code: "r_MonQ.push_back(r_Captured);\n-> e_MonDataReady;",
+      packetWire: "monitor_monq",
+      packet: "48"
+    },
+    {
+      title: "scoreboard 양쪽 pop",
+      body: "scoreboard는 expected와 actual을 각각 queue에서 꺼내 비교한다.",
+      activeNodes: ["expq", "monq", "scoreboard"],
+      activeWires: ["expq_scoreboard", "monq_scoreboard"],
+      code: "r_Expected = r_ExpQ.pop_front();\nr_Actual   = r_MonQ.pop_front();",
+      packetWire: null,
+      packet: ""
+    }
+  ],
+  snippet: "tb_top_v7.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
