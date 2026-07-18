@@ -1,0 +1,1050 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>UART TX UVC Flow Demo</title>
+<style>
+  :root {
+    --bg: #101419;
+    --panel: rgba(24, 30, 38, .86);
+    --panel2: rgba(19, 24, 31, .92);
+    --line: rgba(154, 169, 184, .28);
+    --text: #eef4f8;
+    --muted: #9daebd;
+    --blue: #5fa8ff;
+    --green: #36c98f;
+    --amber: #f2bd5c;
+    --rose: #ff6f91;
+    --violet: #a58cff;
+    --cyan: #67d9e8;
+    --shadow: 0 18px 42px rgba(0,0,0,.34);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--text);
+    font-family: "Segoe UI Variable", "Segoe UI", sans-serif;
+    background:
+      linear-gradient(150deg, #101419, #171d25 48%, #0f1419);
+  }
+
+  .wrap {
+    max-width: 1380px;
+    margin: 0 auto;
+    padding: 26px;
+  }
+
+  header {
+    margin-bottom: 18px;
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+
+  .sub {
+    margin: 8px 0 0;
+    color: var(--muted);
+    line-height: 1.65;
+    max-width: 850px;
+    font-size: 14px;
+  }
+
+  .tag {
+    border: 1px solid rgba(95,168,255,.35);
+    background: rgba(95,168,255,.1);
+    color: #d7eaff;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    text-decoration: none;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 310px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  .side {
+    padding: 18px;
+  }
+
+  h2 {
+    margin: 0 0 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    font-size: 17px;
+    letter-spacing: 0;
+  }
+
+  .case-list,
+  .step-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  button {
+    width: 100%;
+    border: 1px solid rgba(154,169,184,.28);
+    background: rgba(14,18,24,.78);
+    color: var(--text);
+    border-radius: 12px;
+    padding: 11px 12px;
+    text-align: left;
+    cursor: pointer;
+    transition: .16s;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 750;
+  }
+
+  button:hover {
+    border-color: rgba(95,168,255,.72);
+    transform: translateX(3px);
+  }
+
+  button.active {
+    border-color: rgba(95,168,255,.9);
+    background: linear-gradient(90deg, rgba(95,168,255,.22), rgba(54,201,143,.11));
+    box-shadow: 0 0 18px rgba(95,168,255,.16);
+  }
+
+  button .small {
+    display: block;
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 650;
+    font-family: Consolas, "Courier New", monospace;
+  }
+
+  .status {
+    margin-top: 12px;
+    min-height: 168px;
+    border: 1px solid rgba(255,255,255,.07);
+    border-left: 4px solid var(--blue);
+    border-radius: 14px;
+    background: rgba(0,0,0,.22);
+    padding: 14px;
+    color: #d7e3ec;
+    line-height: 1.65;
+    font-size: 13px;
+  }
+
+  .status strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #ffffff;
+    font-size: 14px;
+  }
+
+  .nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 14px;
+    margin-bottom: 12px;
+  }
+
+  .nav button {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    border-radius: 50%;
+    text-align: center;
+    font-size: 18px;
+  }
+
+  .nav button:disabled {
+    opacity: .35;
+    cursor: default;
+    transform: none;
+  }
+
+  .nav .ind {
+    flex: 1;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .stage {
+    padding: 18px;
+  }
+
+  .board {
+    position: relative;
+    min-height: 710px;
+    border: 1px dashed rgba(154,169,184,.24);
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(17,22,29,.88), rgba(14,18,24,.76));
+    overflow: hidden;
+  }
+
+  .lane-title {
+    position: absolute;
+    top: 14px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.1);
+    background: rgba(0,0,0,.22);
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: .04em;
+  }
+
+  .lane-title.stim { left: 24px; color: #d8ebff; border-color: rgba(95,168,255,.35); }
+  .lane-title.obs { right: 24px; color: #dcfff0; border-color: rgba(54,201,143,.35); }
+
+  .object {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,.13);
+    border-radius: 16px;
+    background: rgba(20,26,34,.96);
+    box-shadow: 0 12px 28px rgba(0,0,0,.27);
+    padding: 13px;
+    transition: border-color .18s, box-shadow .18s, transform .18s;
+  }
+
+  .object.active {
+    border-color: rgba(95,168,255,.92);
+    box-shadow: 0 0 0 2px rgba(95,168,255,.22), 0 14px 30px rgba(0,0,0,.33);
+    transform: translateY(-2px);
+  }
+
+  .object strong {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    margin-bottom: 7px;
+  }
+
+  .object span {
+    display: block;
+    color: #c2d1dd;
+    font-size: 12px;
+    line-height: 1.48;
+  }
+
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: var(--blue);
+    box-shadow: 0 0 12px currentColor;
+  }
+
+  .test { left: 24px; top: 58px; width: 200px; border-color: rgba(165,140,255,.32); }
+  .test .dot { background: var(--violet); }
+  .seq { left: 268px; top: 86px; width: 190px; border-color: rgba(242,189,92,.32); }
+  .seq .dot { background: var(--amber); }
+  .seqr { left: 502px; top: 86px; width: 204px; border-color: rgba(95,168,255,.34); }
+  .seqr .dot { background: var(--blue); }
+  .driver { left: 746px; top: 86px; width: 190px; border-color: rgba(255,111,145,.32); }
+  .driver .dot { background: var(--rose); }
+  .dut { left: 746px; top: 312px; width: 190px; border-color: rgba(103,217,232,.34); }
+  .dut .dot { background: var(--cyan); }
+  .monitor { left: 502px; top: 438px; width: 204px; border-color: rgba(54,201,143,.34); }
+  .monitor .dot { background: var(--green); }
+  .scoreboard { left: 268px; top: 438px; width: 204px; border-color: rgba(54,201,143,.34); }
+  .scoreboard .dot { background: var(--green); }
+  .expected { left: 24px; top: 438px; width: 200px; border-color: rgba(242,189,92,.34); }
+  .expected .dot { background: var(--amber); }
+
+  .handle-note {
+    position: absolute;
+    left: 258px;
+    top: 236px;
+    width: 432px;
+    min-height: 84px;
+    border: 1px solid rgba(95,168,255,.24);
+    border-radius: 16px;
+    background: rgba(10,14,19,.66);
+    padding: 13px 15px;
+    color: #d7e4ef;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .handle-note strong {
+    color: #ffffff;
+  }
+
+  .payload-strip {
+    position: absolute;
+    left: 24px;
+    top: 214px;
+    width: 200px;
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 14px;
+    background: rgba(0,0,0,.2);
+    padding: 12px;
+  }
+
+  .payload-strip strong {
+    display: block;
+    margin-bottom: 9px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .bytes {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+  }
+
+  .byte {
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(95,168,255,.12);
+    border: 1px solid rgba(95,168,255,.24);
+    color: #e8f4ff;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    font-weight: 850;
+    transition: .18s;
+  }
+
+  .byte.active {
+    border-color: rgba(242,189,92,.92);
+    background: rgba(242,189,92,.19);
+    color: #fff4d8;
+    box-shadow: 0 0 18px rgba(242,189,92,.2);
+  }
+
+  .queue {
+    display: grid;
+    gap: 6px;
+    margin-top: 9px;
+  }
+
+  .qitem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(95,168,255,.18);
+    background: rgba(95,168,255,.09);
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 11px;
+    color: #d9edff;
+    opacity: .26;
+    transition: .18s;
+  }
+
+  .qitem.filled {
+    opacity: 1;
+    border-color: rgba(95,168,255,.45);
+  }
+
+  .compare {
+    margin-top: 8px;
+    display: grid;
+    gap: 4px;
+  }
+
+  .cmp {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(54,201,143,.18);
+    background: rgba(54,201,143,.08);
+    padding: 4px 7px;
+    color: #dcfff0;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 10px;
+    opacity: .26;
+    transition: .18s;
+  }
+
+  .cmp.done {
+    opacity: 1;
+    border-color: rgba(54,201,143,.55);
+  }
+
+  .arrows {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  .wire {
+    stroke: rgba(154,169,184,.38);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    fill: none;
+    transition: stroke .18s;
+  }
+
+  .wire-group.active .wire {
+    stroke: #36c98f;
+  }
+
+  .arrow-head {
+    stroke: rgba(154,169,184,.58);
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    transition: stroke .18s;
+  }
+
+  .wire-group.active .arrow-head {
+    stroke: #36c98f;
+  }
+
+  .wire-group {
+    transition: opacity .18s, filter .18s;
+  }
+
+  .wire-group.active {
+    filter: drop-shadow(0 0 5px rgba(54,201,143,.4));
+  }
+
+  .packet {
+    position: absolute;
+    width: 42px;
+    height: 28px;
+    border-radius: 9px;
+    border: 1px solid rgba(242,189,92,.75);
+    background: rgba(242,189,92,.2);
+    color: #fff2d3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    font-weight: 900;
+    box-shadow: 0 0 16px rgba(242,189,92,.24);
+    opacity: 0;
+    transition: left .42s ease, top .42s ease, opacity .18s ease;
+    z-index: 10;
+  }
+
+  .packet.show { opacity: 1; }
+
+  .code {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+
+  .codebox {
+    border: 1px solid rgba(154,169,184,.18);
+    border-radius: 14px;
+    background: rgba(0,0,0,.22);
+    padding: 12px;
+    min-height: 116px;
+  }
+
+  .codebox strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    color: #e9f2f8;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.52;
+  }
+
+  .hl {
+    color: #ffdf9b;
+    font-weight: 850;
+  }
+
+  @media (max-width: 1180px) {
+    .grid { grid-template-columns: 1fr; }
+    header { display: block; }
+    .tag { display: inline-block; margin-top: 12px; }
+    .board {
+      min-width: 1080px;
+    }
+    .stage {
+      overflow-x: auto;
+    }
+    .code { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>UART TX Class UVC Flow</h1>
+      <p class="sub">
+        m12_sv_class_uvc 기준으로 test가 payload를 고르고, sequence가 sequence item으로 포장하고,
+        같은 sequencer handle을 통해 driver가 DUT를 구동하는 흐름을 보여준다.
+      </p>
+    </div>
+    <a class="tag" href="stage_flow_demo.html">m12 단계 흐름으로 돌아가기</a>
+  </header>
+
+  <main class="grid">
+    <aside class="panel side">
+      <h2>Test Case Data</h2>
+      <div class="case-list" id="caseList"></div>
+
+      <div class="nav">
+        <button id="prevBtn" type="button" aria-label="previous step">&lt;</button>
+        <div class="ind" id="stepInd"></div>
+        <button id="nextBtn" type="button" aria-label="next step">&gt;</button>
+      </div>
+
+      <div class="status" id="status"></div>
+
+      <h2 style="margin-top:20px">Flow Step</h2>
+      <div class="step-list" id="stepList"></div>
+    </aside>
+
+    <section class="panel stage">
+      <div class="board" id="board">
+        <div class="lane-title stim">STIMULUS PATH</div>
+        <div class="lane-title obs">OBSERVE / CHECK PATH</div>
+
+        <div class="object test" data-node="test">
+          <strong><i class="dot"></i>uart_tx_test</strong>
+          <span>class 객체 생성, payload 선택, sequence와 env 실행</span>
+        </div>
+
+        <div class="payload-strip">
+          <strong id="payloadTitle">payload</strong>
+          <div class="bytes" id="payloadBytes"></div>
+        </div>
+
+        <div class="object seq" data-node="seq">
+          <strong><i class="dot"></i>uart_tx_sequence</strong>
+          <span>payload byte를 uart_tx_seq_item 객체로 포장</span>
+        </div>
+
+        <div class="object seqr" data-node="seqr">
+          <strong><i class="dot"></i>uart_tx_sequencer</strong>
+          <span>sequence와 driver가 공유하는 중개 object</span>
+          <div class="queue" id="queueList"></div>
+        </div>
+
+        <div class="object driver" data-node="driver">
+          <strong><i class="dot"></i>uart_tx_driver</strong>
+          <span>sequencer에서 item을 꺼내 r_TxData/r_TxValid 구동</span>
+        </div>
+
+        <div class="object dut" data-node="dut">
+          <strong><i class="dot"></i>UART_Tx DUT</strong>
+          <span>byte를 UART serial waveform으로 변환</span>
+        </div>
+
+        <div class="object monitor" data-node="monitor">
+          <strong><i class="dot"></i>uart_tx_monitor</strong>
+          <span>serial output을 다시 actual item으로 복원</span>
+        </div>
+
+        <div class="object scoreboard" data-node="scoreboard">
+          <strong><i class="dot"></i>uart_tx_scoreboard</strong>
+          <span>expected byte와 actual byte를 비교</span>
+          <div class="compare" id="compareList"></div>
+        </div>
+
+        <div class="object expected" data-node="expected">
+          <strong><i class="dot"></i>expected path</strong>
+          <span>이 UART 예제에서는 payload 자체가 정답지</span>
+        </div>
+
+        <div class="handle-note" id="handleNote">
+          <strong>Handle 공유</strong><br>
+          test.sequencer, seq.sequencer, driver 쪽 sequencer는 서로 다른 객체가 아니라
+          test가 new()한 같은 sequencer 객체를 가리킨다.
+        </div>
+
+        <svg class="arrows" aria-hidden="true">
+          <defs>
+            <linearGradient id="flow-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stop-color="#5fa8ff" />
+              <stop offset="100%" stop-color="#36c98f" />
+            </linearGradient>
+          </defs>
+          <g id="wireLayer"></g>
+        </svg>
+
+        <div class="packet" id="packet">48</div>
+      </div>
+
+      <div class="code">
+        <div class="codebox">
+          <strong>Object setup</strong>
+          <pre id="setupCode"></pre>
+        </div>
+        <div class="codebox">
+          <strong>Current action</strong>
+          <pre id="actionCode"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const cases = [
+  { id: "smoke_sequence", label: "Smoke", bytes: ["48", "65", "6c", "6c", "6f"] },
+  { id: "pattern_sequence", label: "Pattern", bytes: ["00", "ff", "55", "aa", "3c"] },
+  { id: "random_sequence", label: "Random", bytes: ["7a", "05", "f0", "14", "94"] }
+];
+
+const steps = [
+  {
+    title: "객체 생성",
+    text: "test가 sequencer를 한 번 만들고, 같은 handle을 sequence와 env/driver 쪽에 넘긴다.",
+    nodes: ["test", "seq", "seqr", "driver"],
+    wires: [],
+    packet: null,
+    queueCount: 0,
+    compareCount: 0,
+    byteIndex: -1,
+    code: `sequencer = new();\nseq       = new(sequencer, exp_mbx);\nenv       = new(vif, sequencer,\n                exp_mbx, mon_mbx);`
+  },
+  {
+    title: "payload 선택",
+    text: "smoke, pattern, random은 다른 sequence class가 아니라 test case data의 차이다.",
+    nodes: ["test"],
+    wires: [],
+    packet: { left: 104, top: 258 },
+    queueCount: 0,
+    compareCount: 0,
+    byteIndex: 0,
+    code: `load_${"CASE"}_payload();\nrun_case(UART_TX_SEQ_${"CASE"});`
+  },
+  {
+    title: "expected item 생성",
+    text: "sequence는 driver item과 같은 payload 값을 가진 expected item을 함께 만든다.",
+    nodes: ["seq", "expected", "scoreboard"],
+    wires: ["expected-scoreboard"],
+    packet: { left: 108, top: 552 },
+    queueCount: 0,
+    compareCount: 0,
+    byteIndex: 0,
+    code: `driver_item   = new(payload[r_ByteIdx]);\nexpected_item = new(payload[r_ByteIdx]);\nexp_mbx.put(expected_item);`
+  },
+  {
+    title: "sequence 실행",
+    text: "sequence는 driver item을 같은 sequencer handle의 put_item()으로 넘긴다.",
+    nodes: ["test", "seq", "seqr"],
+    wires: ["test-seq", "seq-seqr"],
+    packet: { left: 466, top: 127 },
+    queueCount: 5,
+    compareCount: 0,
+    byteIndex: 0,
+    code: `seq.send_payload(sequence_name, payload);\n\ndriver_item = new(payload[r_ByteIdx]);\nsequencer.put_item(driver_item);`
+  },
+  {
+    title: "driver가 가져감",
+    text: "driver는 같은 sequencer handle에서 blocking get으로 item을 하나씩 가져간다.",
+    nodes: ["seqr", "driver"],
+    wires: ["seqr-driver"],
+    packet: { left: 706, top: 127 },
+    queueCount: 4,
+    compareCount: 0,
+    byteIndex: 0,
+    code: `sequencer.get_item(item);\ndrive_item(item);`
+  },
+  {
+    title: "DUT 구동",
+    text: "driver가 r_TxData와 r_TxValid를 움직이면 UART_Tx가 serial bit stream을 만든다.",
+    nodes: ["driver", "dut"],
+    wires: ["driver-dut"],
+    packet: { left: 820, top: 266 },
+    queueCount: 4,
+    compareCount: 0,
+    byteIndex: 0,
+    code: `do @(posedge vif.i_Clk); while (!vif.w_TxReady);\nvif.r_TxData  <= item.data;\nvif.r_TxValid <= 1'b1;`
+  },
+  {
+    title: "monitor 복원",
+    text: "monitor는 serial output을 관찰해서 actual item을 복원한다.",
+    nodes: ["dut", "monitor"],
+    wires: ["dut-monitor"],
+    packet: { left: 654, top: 404 },
+    queueCount: 4,
+    compareCount: 0,
+    byteIndex: 0,
+    code: `monitor.run(num_bytes);\n// w_TxSerial sampling\n// actual item 복원`
+  },
+  {
+    title: "scoreboard 비교",
+    text: "scoreboard는 expected payload와 monitor actual을 byte 단위로 비교한다.",
+    nodes: ["monitor", "scoreboard", "expected"],
+    wires: ["monitor-scoreboard", "expected-scoreboard"],
+    packet: { left: 480, top: 480 },
+    queueCount: 4,
+    compareCount: 1,
+    byteIndex: 0,
+    code: `exp_mbx.get(expected);\nmon_mbx.get(actual);\ncompare(expected.data, actual.data);`
+  }
+];
+
+let caseIndex = 0;
+let stepIndex = 0;
+
+const caseList = document.getElementById("caseList");
+const stepList = document.getElementById("stepList");
+const payloadBytes = document.getElementById("payloadBytes");
+const payloadTitle = document.getElementById("payloadTitle");
+const queueList = document.getElementById("queueList");
+const compareList = document.getElementById("compareList");
+const status = document.getElementById("status");
+const stepInd = document.getElementById("stepInd");
+const prevBtn = document.getElementById("prevBtn");
+const nextBtn = document.getElementById("nextBtn");
+const packet = document.getElementById("packet");
+const setupCode = document.getElementById("setupCode");
+const actionCode = document.getElementById("actionCode");
+const board = document.getElementById("board");
+const arrowSvg = document.querySelector(".arrows");
+const wireLayer = document.getElementById("wireLayer");
+const svgNS = "http://www.w3.org/2000/svg";
+
+const connections = [
+  { id: "test-seq", kind: "h", from: "test", to: "seq", yRef: "to" },
+  { id: "seq-seqr", kind: "h", from: "seq", to: "seqr", yRef: "from" },
+  { id: "seqr-driver", kind: "h", from: "seqr", to: "driver", yRef: "to" },
+  { id: "driver-dut", kind: "v", from: "driver", to: "dut", xRef: "from" },
+  { id: "dut-monitor", kind: "diag", from: "dut", to: "monitor" },
+  { id: "monitor-scoreboard", kind: "h-rev", from: "monitor", to: "scoreboard", yRef: "from" },
+  { id: "expected-scoreboard", kind: "h", from: "expected", to: "scoreboard", yRef: "from" }
+];
+
+function caseConstName() {
+  return cases[caseIndex].label.toUpperCase();
+}
+
+function renderCaseButtons() {
+  caseList.innerHTML = "";
+  cases.forEach((tc, idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = idx === caseIndex ? "active" : "";
+    btn.innerHTML = `${tc.label}<span class="small">${tc.bytes.join(" ")}</span>`;
+    btn.addEventListener("click", () => {
+      caseIndex = idx;
+      stepIndex = 1;
+      render();
+    });
+    caseList.appendChild(btn);
+  });
+}
+
+function renderStepButtons() {
+  stepList.innerHTML = "";
+  steps.forEach((st, idx) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = idx === stepIndex ? "active" : "";
+    btn.textContent = `${idx + 1}. ${st.title}`;
+    btn.addEventListener("click", () => {
+      stepIndex = idx;
+      render();
+    });
+    stepList.appendChild(btn);
+  });
+}
+
+function renderBytes() {
+  const tc = cases[caseIndex];
+  const st = steps[stepIndex];
+  payloadTitle.textContent = `${tc.id} payload`;
+  payloadBytes.innerHTML = "";
+  tc.bytes.forEach((b, idx) => {
+    const div = document.createElement("div");
+    div.className = "byte" + (idx === st.byteIndex ? " active" : "");
+    div.textContent = b;
+    payloadBytes.appendChild(div);
+  });
+}
+
+function renderQueue() {
+  const tc = cases[caseIndex];
+  const st = steps[stepIndex];
+  queueList.innerHTML = "";
+  tc.bytes.forEach((b, idx) => {
+    const item = document.createElement("div");
+    item.className = "qitem" + (idx < st.queueCount ? " filled" : "");
+    item.innerHTML = `<span>seq_item</span><b>0x${b}</b>`;
+    queueList.appendChild(item);
+  });
+}
+
+function renderCompare() {
+  const tc = cases[caseIndex];
+  const st = steps[stepIndex];
+  compareList.innerHTML = "";
+  tc.bytes.forEach((b, idx) => {
+    const item = document.createElement("div");
+    item.className = "cmp" + (idx < st.compareCount ? " done" : "");
+    item.innerHTML = `<span>exp=0x${b}</span><b>${idx < st.compareCount ? "PASS" : "WAIT"}</b>`;
+    compareList.appendChild(item);
+  });
+}
+
+function getNodeRect(name) {
+  const el = document.querySelector(`[data-node="${name}"]`);
+  const br = board.getBoundingClientRect();
+  const r = el.getBoundingClientRect();
+
+  return {
+    left: r.left - br.left,
+    right: r.right - br.left,
+    top: r.top - br.top,
+    bottom: r.bottom - br.top,
+    width: r.width,
+    height: r.height
+  };
+}
+
+function anchor(rect, side) {
+  switch (side) {
+    case "left":
+      return { x: rect.left, y: rect.top + rect.height / 2 };
+    case "right":
+      return { x: rect.right, y: rect.top + rect.height / 2 };
+    case "top":
+      return { x: rect.left + rect.width / 2, y: rect.top };
+    case "bottom":
+      return { x: rect.left + rect.width / 2, y: rect.bottom };
+    case "bottomLeft":
+      return { x: rect.left + rect.width * 0.22, y: rect.bottom };
+    case "topRight":
+      return { x: rect.right - rect.width * 0.18, y: rect.top };
+    default:
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+  }
+}
+
+function centerX(rect) {
+  return rect.left + rect.width / 2;
+}
+
+function centerY(rect) {
+  return rect.top + rect.height / 2;
+}
+
+function clamp(v, lo, hi) {
+  return Math.max(lo, Math.min(hi, v));
+}
+
+function connectionPoints(conn) {
+  const from = getNodeRect(conn.from);
+  const to = getNodeRect(conn.to);
+
+  if (conn.kind === "h") {
+    const ref = conn.yRef === "to" ? centerY(to) : centerY(from);
+    const y1 = clamp(ref, from.top + 12, from.bottom - 12);
+    const y2 = clamp(ref, to.top + 12, to.bottom - 12);
+    return {
+      a: { x: from.right, y: y1 },
+      b: { x: to.left, y: y2 }
+    };
+  }
+
+  if (conn.kind === "h-rev") {
+    const ref = conn.yRef === "to" ? centerY(to) : centerY(from);
+    const y1 = clamp(ref, from.top + 12, from.bottom - 12);
+    const y2 = clamp(ref, to.top + 12, to.bottom - 12);
+    return {
+      a: { x: from.left, y: y1 },
+      b: { x: to.right, y: y2 }
+    };
+  }
+
+  if (conn.kind === "v") {
+    const ref = conn.xRef === "to" ? centerX(to) : centerX(from);
+    const x1 = clamp(ref, from.left + 12, from.right - 12);
+    const x2 = clamp(ref, to.left + 12, to.right - 12);
+    return {
+      a: { x: x1, y: from.bottom },
+      b: { x: x2, y: to.top }
+    };
+  }
+
+  if (conn.kind === "diag") {
+    return {
+      a: { x: from.left + from.width * 0.26, y: from.bottom },
+      b: { x: to.right - to.width * 0.14, y: to.top }
+    };
+  }
+
+  return {
+    a: anchor(from, "right"),
+    b: anchor(to, "left")
+  };
+}
+
+function addWire(id, a, b) {
+  const group = document.createElementNS(svgNS, "g");
+  group.setAttribute("class", "wire-group");
+  group.dataset.wire = id;
+
+  const line = document.createElementNS(svgNS, "line");
+  line.setAttribute("class", "wire");
+  line.setAttribute("x1", a.x.toFixed(1));
+  line.setAttribute("y1", a.y.toFixed(1));
+  line.setAttribute("x2", b.x.toFixed(1));
+  line.setAttribute("y2", b.y.toFixed(1));
+  group.appendChild(line);
+
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.max(Math.hypot(dx, dy), 1);
+  const ux = dx / len;
+  const uy = dy / len;
+  const px = -uy;
+  const py = ux;
+  const head = 9;
+  const wing = 5;
+  const p1 = {
+    x: b.x - ux * head + px * wing,
+    y: b.y - uy * head + py * wing
+  };
+  const p2 = {
+    x: b.x - ux * head - px * wing,
+    y: b.y - uy * head - py * wing
+  };
+
+  const arrow = document.createElementNS(svgNS, "polyline");
+  arrow.setAttribute("class", "arrow-head");
+  arrow.setAttribute(
+    "points",
+    `${p1.x.toFixed(1)},${p1.y.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)}`
+  );
+  group.appendChild(arrow);
+  wireLayer.appendChild(group);
+}
+
+function updateArrows() {
+  const br = board.getBoundingClientRect();
+  arrowSvg.setAttribute("viewBox", `0 0 ${br.width} ${br.height}`);
+  wireLayer.innerHTML = "";
+
+  connections.forEach(conn => {
+    const { a, b } = connectionPoints(conn);
+    addWire(conn.id, a, b);
+  });
+}
+
+function renderHighlights() {
+  const st = steps[stepIndex];
+  document.querySelectorAll(".object").forEach(el => {
+    el.classList.toggle("active", st.nodes.includes(el.dataset.node));
+  });
+  document.querySelectorAll(".wire-group").forEach(el => {
+    el.classList.toggle("active", st.wires.includes(el.dataset.wire));
+  });
+}
+
+function renderPacket() {
+  const tc = cases[caseIndex];
+  const st = steps[stepIndex];
+  const b = tc.bytes[Math.max(0, st.byteIndex)];
+  packet.textContent = b;
+  if (st.packet) {
+    packet.style.left = `${st.packet.left}px`;
+    packet.style.top = `${st.packet.top}px`;
+    packet.classList.add("show");
+  } else {
+    packet.classList.remove("show");
+  }
+}
+
+function renderText() {
+  const tc = cases[caseIndex];
+  const st = steps[stepIndex];
+  status.innerHTML = `<strong>${st.title}</strong>${st.text}<br><br><b>${tc.id}</b> : ${tc.bytes.map(b => "0x" + b).join(", ")}`;
+  stepInd.textContent = `${stepIndex + 1} / ${steps.length}`;
+  prevBtn.disabled = stepIndex === 0;
+  nextBtn.disabled = stepIndex === steps.length - 1;
+
+  setupCode.innerHTML =
+    `sequencer = new();\n` +
+    `seq       = new(<span class="hl">sequencer</span>, exp_mbx);\n` +
+    `env       = new(vif, <span class="hl">sequencer</span>,\n` +
+    `                exp_mbx, mon_mbx);`;
+
+  const code = st.code.replaceAll("CASE", caseConstName());
+  actionCode.textContent = code;
+}
+
+function render() {
+  renderCaseButtons();
+  renderStepButtons();
+  renderBytes();
+  renderQueue();
+  renderCompare();
+  updateArrows();
+  renderHighlights();
+  renderPacket();
+  renderText();
+}
+
+prevBtn.addEventListener("click", () => {
+  if (stepIndex > 0) {
+    stepIndex -= 1;
+    render();
+  }
+});
+
+nextBtn.addEventListener("click", () => {
+  if (stepIndex < steps.length - 1) {
+    stepIndex += 1;
+    render();
+  }
+});
+
+window.addEventListener("resize", () => {
+  updateArrows();
+  renderHighlights();
+});
+
+render();
+</script>
+</body>
+</html>

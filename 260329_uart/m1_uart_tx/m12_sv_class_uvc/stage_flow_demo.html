@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m12_sv_class_uvc Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m12_sv_class_uvc",
+  headline: "plain SystemVerilog class와 virtual interface로 UVC 객체 구조를 만든다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m11_mailbox_channel 대비: mailbox 데이터 경로는 유지하고 역할 task를 상태와 동작을 가진 class 객체로 올린다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "상세 UVC 데모", href: "uart_tx_uvc_flow_demo.html" },
+    { label: "← m11", href: "../m11_mailbox_channel/stage_flow_demo.html" }
+  ],
+  focus: [
+    "test가 sequencer, sequence와 env 객체를 생성하고 constructor로 같은 handle을 연결한다.",
+    "driver와 monitor는 virtual uart_tx_if handle로 DUT pin을 구동하고 관찰한다.",
+    "m11의 typed mailbox와 sequence의 expected 생성 책임은 유지해 변화가 class ownership에 집중된다."
+  ],
+  nodes: [
+    { id: "test", title: "uart_tx_test", text: "UVC 객체 생성과 case 조율", x: 4, y: 15, w: 18, h: 13, tone: "violet" },
+    { id: "sequence", title: "uart_tx_sequence", text: "driver·expected item 생성", x: 28, y: 15, w: 19, h: 13, tone: "amber" },
+    { id: "sequencer", title: "uart_tx_sequencer", text: "item mailbox를 소유한 객체", x: 53, y: 15, w: 20, h: 13, tone: "blue" },
+    { id: "driver", title: "uart_tx_driver", text: "vif로 DUT 입력 구동", x: 79, y: 15, w: 17, h: 13, tone: "rose" },
+    { id: "interface", title: "virtual uart_tx_if", text: "class와 DUT pin 연결", x: 79, y: 45, w: 17, h: 13, tone: "slate" },
+    { id: "monitor", title: "uart_tx_monitor", text: "vif로 actual item 복원", x: 56, y: 61, w: 18, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uart_tx_scoreboard", text: "mailbox 비교와 상태 소유", x: 30, y: 61, w: 20, h: 13, tone: "green" },
+    { id: "env", title: "env / agent", text: "하위 class 객체 ownership", x: 4, y: 55, w: 19, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "test_sequence", from: "test", to: "sequence" },
+    { id: "sequence_sequencer", from: "sequence", to: "sequencer" },
+    { id: "sequencer_driver", from: "sequencer", to: "driver" },
+    { id: "driver_interface", from: "driver", to: "interface" },
+    { id: "interface_monitor", from: "interface", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "env_driver", from: "env", to: "driver" },
+    { id: "env_scoreboard", from: "env", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "객체 생성과 handle 연결",
+      body: "test가 sequencer를 한 번 만들고 같은 handle을 sequence와 env의 driver 쪽에 constructor로 전달한다.",
+      activeNodes: ["test", "sequence", "sequencer", "env"],
+      activeWires: ["test_sequence"],
+      code: "sequencer = new();\nseq = new(sequencer, exp_mbx);\nenv = new(vif, sequencer, exp_mbx, mon_mbx);",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "sequence class 실행",
+      body: "sequence 객체가 payload로 driver item과 expected item을 만들고 m11의 mailbox 경로에 넣는다.",
+      activeNodes: ["test", "sequence", "sequencer", "scoreboard"],
+      activeWires: ["test_sequence", "sequence_sequencer"],
+      code: "driver_item = new(payload[r_ByteIdx]);\nsequencer.put_item(driver_item);\nexp_mbx.put(expected_item);",
+      packetWire: "sequence_sequencer",
+      packet: "item 48"
+    },
+    {
+      title: "driver와 virtual interface",
+      body: "driver 객체는 공유 sequencer에서 item을 받아 virtual interface handle을 통해 DUT를 구동한다.",
+      activeNodes: ["sequencer", "driver", "interface"],
+      activeWires: ["sequencer_driver", "driver_interface"],
+      code: "sequencer.get_item(item);\nvif.r_TxData <= item.data;\nvif.r_TxValid <= 1'b1;",
+      packetWire: "sequencer_driver",
+      packet: "item 48"
+    },
+    {
+      title: "class UVC 병렬 실행",
+      body: "env와 agent 객체가 driver, monitor와 scoreboard의 run()을 병렬 실행하고 각 객체가 자기 상태를 관리한다.",
+      activeNodes: ["env", "driver", "interface", "monitor", "scoreboard"],
+      activeWires: ["env_driver", "driver_interface", "interface_monitor", "monitor_scoreboard", "env_scoreboard"],
+      code: "fork\n  agent.run(num_bytes);\n  scoreboard.run(num_bytes);\njoin",
+      packetWire: "monitor_scoreboard",
+      packet: "PASS"
+    }
+  ],
+  snippet: "uvc/uart_tx/*.sv / tb/test/uart_tx_test.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
