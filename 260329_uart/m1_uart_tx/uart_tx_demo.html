@@ -710,6 +710,7 @@
     els.ttUart.classList.remove('show');
 
     domCells.forEach(cell => {
+      cell.style.opacity = '1';
       cell.classList.remove('loaded', 'shifting');
       cell.childNodes[0].nodeValue = '-';
     });
