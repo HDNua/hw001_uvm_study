@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m14_sv_analysis_port Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m14_sv_analysis_port",
+  headline: "monitor의 actual item을 analysis_port.write() callback 경로로 전달한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m13_sv_seq_item_port 대비: request와 expected 경로는 유지하고 monitor→scoreboard actual mailbox만 analysis port/imp로 바꾼다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m13", href: "../m13_sv_seq_item_port/stage_flow_demo.html" }
+  ],
+  focus: [
+    "sequence-driver 경로는 m13의 get_next_item(req)와 item_done() 흐름을 그대로 유지한다.",
+    "monitor는 scoreboard나 actual mailbox를 모르고 관측 item을 ap.write(item)으로 publish한다.",
+    "env가 analysis_port와 analysis_imp를 연결하고 scoreboard.write(actual)가 callback으로 호출된다."
+  ],
+  nodes: [
+    { id: "sequence", title: "uart_tx_sequence", text: "request·expected item 생성", x: 3, y: 15, w: 18, h: 13, tone: "amber" },
+    { id: "port", title: "seq_item_port", text: "m13 request 경로 유지", x: 25, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "driver", title: "uart_tx_driver", text: "req 수신·DUT 구동", x: 46, y: 15, w: 16, h: 13, tone: "rose" },
+    { id: "interface", title: "uart_tx_if", text: "DUT pin 연결", x: 66, y: 15, w: 14, h: 13, tone: "slate" },
+    { id: "monitor", title: "uart_tx_monitor", text: "actual item publish", x: 83, y: 15, w: 14, h: 13, tone: "green" },
+    { id: "analysis", title: "analysis_port / imp", text: "write callback bridge", x: 66, y: 58, w: 20, h: 13, tone: "blue" },
+    { id: "scoreboard", title: "uart_tx_scoreboard", text: "write(actual)에서 비교", x: 38, y: 58, w: 21, h: 13, tone: "green" },
+    { id: "env", title: "uart_tx_env", text: "port와 imp 연결", x: 8, y: 55, w: 18, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "sequence_port", from: "sequence", to: "port" },
+    { id: "port_driver", from: "port", to: "driver" },
+    { id: "driver_interface", from: "driver", to: "interface" },
+    { id: "interface_monitor", from: "interface", to: "monitor" },
+    { id: "monitor_analysis", from: "monitor", to: "analysis" },
+    { id: "analysis_scoreboard", from: "analysis", to: "scoreboard" },
+    { id: "sequence_scoreboard", from: "sequence", to: "scoreboard" },
+    { id: "env_analysis", from: "env", to: "analysis" }
+  ],
+  steps: [
+    {
+      title: "m13 request 경로 유지",
+      body: "sequence가 sequencer에 item을 넣고 driver는 seq_item_port로 req를 받아 구동한 뒤 item_done()을 호출한다.",
+      activeNodes: ["sequence", "port", "driver"],
+      activeWires: ["sequence_port", "port_driver"],
+      code: "seq_item_port.get_next_item(req);\ndrive_item(req);\nseq_item_port.item_done();",
+      packetWire: "port_driver",
+      packet: "req 48"
+    },
+    {
+      title: "analysis path 연결",
+      body: "env가 scoreboard를 가리키는 analysis_imp를 만들고 monitor의 analysis_port에 연결한다.",
+      activeNodes: ["env", "monitor", "analysis", "scoreboard"],
+      activeWires: ["env_analysis", "analysis_scoreboard"],
+      code: "scoreboard_imp = new(scoreboard);\nagent.monitor.ap.connect(scoreboard_imp);",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "expected 경로 유지",
+      body: "sequence가 만든 expected item은 m13처럼 typed mailbox를 거쳐 scoreboard 내부 expected queue에 준비된다.",
+      activeNodes: ["sequence", "scoreboard"],
+      activeWires: ["sequence_scoreboard"],
+      code: "exp_mbx.put(expected_item);\nexp_mbx.get(expected);\nexpected_q.push_back(expected);",
+      packetWire: "sequence_scoreboard",
+      packet: "exp 48"
+    },
+    {
+      title: "monitor publish",
+      body: "monitor가 serial output에서 actual item을 복원하고 mailbox 대신 analysis_port.write(item)을 호출한다.",
+      activeNodes: ["interface", "monitor", "analysis"],
+      activeWires: ["interface_monitor", "monitor_analysis"],
+      code: "item = new(r_Captured);\nap.write(item);",
+      packetWire: "monitor_analysis",
+      packet: "actual 48"
+    },
+    {
+      title: "scoreboard callback",
+      body: "analysis_imp가 scoreboard.write(actual)를 호출하고 scoreboard가 준비된 expected item과 즉시 비교한다.",
+      activeNodes: ["analysis", "scoreboard"],
+      activeWires: ["analysis_scoreboard"],
+      code: "function void write(uart_tx_seq_item actual);\n  expected = expected_q.pop_front();\n  // expected와 actual 비교\nendfunction",
+      packetWire: "analysis_scoreboard",
+      packet: "PASS"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_analysis_port.sv / uart_tx_monitor.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
