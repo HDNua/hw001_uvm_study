@@ -16,6 +16,7 @@
   --green: #39c88f;
   --violet: #a894ff;
   --amber: #f0bf61;
+  --cyan: #69dce9;
 }
 * { box-sizing: border-box; }
 body {
@@ -57,6 +58,7 @@ h1 {
 }
 .flow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 10px;
   margin: 0 0 18px;
@@ -181,7 +183,7 @@ footer {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span>
+      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span>
     </div>
 
     <div class="grid">
@@ -229,6 +231,18 @@ footer {
           <span>driver·monitor 병렬 실행</span>
           <span>"Hello" 5바이트 전송과 수신</span>
           <span>monitor 내부 비교의 한계 확인</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--cyan)" href="m04_scoreboard/stage_flow_demo.html">
+        <span class="badge">m04</span>
+        <h2>m04_scoreboard</h2>
+        <p>monitor는 수신만 담당하고 scoreboard가 expected와 actual의 비교와 결과 집계를 전담합니다.</p>
+        <div class="points">
+          <span>driver·monitor·scoreboard 역할 분리</span>
+          <span>공유 변수와 event로 actual 전달</span>
+          <span>queue handoff가 필요한 이유 확인</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>
