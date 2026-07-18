@@ -17,6 +17,7 @@
   --violet: #a894ff;
   --amber: #f0bf61;
   --cyan: #69dce9;
+  --slate: #8fa3b8;
 }
 * { box-sizing: border-box; }
 body {
@@ -183,7 +184,7 @@ footer {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span>
+      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span>
     </div>
 
     <div class="grid">
@@ -243,6 +244,18 @@ footer {
           <span>driver·monitor·scoreboard 역할 분리</span>
           <span>공유 변수와 event로 actual 전달</span>
           <span>queue handoff가 필요한 이유 확인</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--slate)" href="m05_queue/stage_flow_demo.html">
+        <span class="badge">m05</span>
+        <h2>m05_queue</h2>
+        <p>monitor와 scoreboard 사이에 queue를 두어 actual byte를 순서대로 안전하게 전달합니다.</p>
+        <div class="points">
+          <span>monitor가 actual queue에 push</span>
+          <span>scoreboard가 순서대로 pop</span>
+          <span>sequence 역할이 필요한 이유 확인</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>

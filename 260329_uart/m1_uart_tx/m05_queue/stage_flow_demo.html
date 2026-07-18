@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>m04_scoreboard Flow Demo</title>
+<title>m05_queue Flow Demo</title>
 <link rel="stylesheet" href="../stage_flow.css" />
 </head>
 <body>
@@ -62,49 +62,41 @@
 
 <script>
 window.STAGE = {
-  title: "m04_scoreboard",
-  headline: "비교 책임을 scoreboard task로 분리한다.",
+  title: "m05_queue",
+  headline: "actual 전달을 queue + event handoff로 바꾼다.",
   focusLabel: "이전 단계 대비",
-  focusSummary: "m03_fork 대비: monitor가 직접 비교하지 않고 scoreboard 역할이 생긴다.",
+  focusSummary: "m04_scoreboard 대비: monitor와 scoreboard 사이의 단일 공유 변수를 queue로 교체한다.",
   navLinks: [
     { label: "목차", href: "../index.html" },
     { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
-    { label: "← m03", href: "../m03_fork/stage_flow_demo.html" },
-    { label: "m05 →", href: "../m05_queue/stage_flow_demo.html" }
+    { label: "← m04", href: "../m04_scoreboard/stage_flow_demo.html" }
   ],
   focus: [
-    "driver, monitor, scoreboard라는 검증 3역할이 처음 보인다.",
-    "actual은 공유 변수와 event로, expected는 scoreboard 내부 queue로 전달한다.",
-    "다음 단계에서 monitor와 scoreboard 사이의 queue handoff가 필요한 이유가 드러난다."
+    "monitor는 actual byte를 r_MonQ에 push하고 event를 발생시킨다.",
+    "scoreboard는 queue에서 actual을 순서대로 pop해 단일 공유 변수의 덮어쓰기 위험을 없앤다.",
+    "driver와 expected는 아직 payload를 직접 참조하므로 다음에는 sequence 역할이 필요하다."
   ],
   nodes: [
-    { id: "test", title: "TB_Top", text: "payload와 expected를 준비", x: 5, y: 18, w: 18, h: 13, tone: "violet" },
-    { id: "driver", title: "driver task", text: "DUT 입력 구동", x: 31, y: 18, w: 18, h: 13, tone: "rose" },
-    { id: "dut", title: "UART_Tx DUT", text: "serial output 생성", x: 57, y: 18, w: 16, h: 13, tone: "cyan" },
-    { id: "monitor", title: "monitor task", text: "actual byte 복원", x: 78, y: 18, w: 17, h: 13, tone: "green" },
-    { id: "scoreboard", title: "scoreboard task", text: "expected와 actual 비교", x: 45, y: 58, w: 23, h: 14, tone: "green" },
-    { id: "expected", title: "expected data", text: "payload에서 기대값 생성", x: 15, y: 58, w: 20, h: 13, tone: "amber" }
+    { id: "test", title: "TB_Top", text: "payload와 expected를 준비", x: 4, y: 18, w: 15, h: 13, tone: "violet" },
+    { id: "driver", title: "driver task", text: "DUT 입력 구동", x: 23, y: 18, w: 15, h: 13, tone: "rose" },
+    { id: "dut", title: "UART_Tx DUT", text: "serial output 생성", x: 43, y: 18, w: 15, h: 13, tone: "cyan" },
+    { id: "monitor", title: "monitor task", text: "actual byte 복원", x: 63, y: 18, w: 15, h: 13, tone: "green" },
+    { id: "queue", title: "r_MonQ + event", text: "actual byte를 순서대로 보관", x: 82, y: 18, w: 14, h: 13, tone: "slate" },
+    { id: "scoreboard", title: "scoreboard task", text: "queue에서 pop해 expected와 비교", x: 49, y: 58, w: 25, h: 14, tone: "green" },
+    { id: "expected", title: "expected data", text: "payload에서 기대값 생성", x: 17, y: 58, w: 20, h: 13, tone: "amber" }
   ],
   wires: [
     { id: "test_driver", from: "test", to: "driver" },
     { id: "driver_dut", from: "driver", to: "dut" },
     { id: "dut_monitor", from: "dut", to: "monitor" },
-    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "monitor_queue", from: "monitor", to: "queue" },
+    { id: "queue_scoreboard", from: "queue", to: "scoreboard" },
     { id: "expected_scoreboard", from: "expected", to: "scoreboard" }
   ],
   steps: [
     {
-      title: "역할 분리",
-      body: "driver, monitor, check가 한 덩어리에서 별도 task 역할로 나뉜다.",
-      activeNodes: ["driver", "monitor", "scoreboard"],
-      activeWires: [],
-      code: "task uart_scoreboard(input int num_bytes);",
-      packetWire: null,
-      packet: ""
-    },
-    {
-      title: "actual 생성",
-      body: "monitor는 DUT serial output을 actual byte로 복원한다.",
+      title: "actual 복원",
+      body: "monitor는 DUT serial output을 actual byte로 복원하지만 직접 비교하지 않는다.",
       activeNodes: ["dut", "monitor"],
       activeWires: ["dut_monitor"],
       code: "recv_byte();",
@@ -112,25 +104,34 @@ window.STAGE = {
       packet: "48"
     },
     {
-      title: "expected 준비",
-      body: "scoreboard는 payload를 직접 참조해 expected queue를 준비한다.",
-      activeNodes: ["test", "expected"],
-      activeWires: [],
-      code: "foreach (r_Payload[r_ByteIdx])\n    r_ExpectedQ.push_back(r_Payload[r_ByteIdx]);",
-      packetWire: null,
-      packet: ""
+      title: "queue push",
+      body: "monitor는 복원한 actual을 queue 뒤에 넣고 event로 scoreboard를 깨운다.",
+      activeNodes: ["monitor", "queue"],
+      activeWires: ["monitor_queue"],
+      code: "r_MonQ.push_back(r_Captured);\n-> e_MonDataReady;",
+      packetWire: "monitor_queue",
+      packet: "48"
+    },
+    {
+      title: "queue pop",
+      body: "scoreboard는 event를 기다린 뒤 가장 먼저 들어온 actual부터 꺼낸다.",
+      activeNodes: ["queue", "scoreboard"],
+      activeWires: ["queue_scoreboard"],
+      code: "@(e_MonDataReady);\nr_Actual = r_MonQ.pop_front();",
+      packetWire: "queue_scoreboard",
+      packet: "48"
     },
     {
       title: "scoreboard 비교",
-      body: "monitor가 event를 발생시키면 scoreboard가 actual과 expected를 비교한다.",
-      activeNodes: ["monitor", "expected", "scoreboard"],
-      activeWires: ["monitor_scoreboard", "expected_scoreboard"],
+      body: "expected path와 queue를 거친 actual path가 scoreboard에서 만난다.",
+      activeNodes: ["expected", "scoreboard"],
+      activeWires: ["expected_scoreboard"],
       code: "if (r_Actual === r_Expected)\n    r_PassCnt++;",
       packetWire: null,
       packet: ""
     }
   ],
-  snippet: "tb_top_v4.sv",
+  snippet: "tb_top_v5.sv",
   payload: ["48", "65", "6c", "6c", "6f"]
 };
 </script>
