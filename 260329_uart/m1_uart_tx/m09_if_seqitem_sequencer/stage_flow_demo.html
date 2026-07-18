@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m09_if_seqitem_sequencer Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m09_if_seqitem_sequencer",
+  headline: "interface, sequence item, sequencer API를 task 기반 UART TX 구조에 넣는다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m08_role_split 대비: 역할 계층은 유지하고 pin, transaction, sequence-driver handoff를 객체와 API로 감싼다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m08", href: "../m08_role_split/stage_flow_demo.html" }
+  ],
+  focus: [
+    "DUT pin은 uart_tx_if로 묶여 driver와 monitor가 같은 interface를 바라본다.",
+    "payload byte는 uart_tx_seq_item 객체가 되어 sequencer queue를 통과한다.",
+    "sequence와 driver는 queue를 직접 공유하지 않고 put/get task로 handoff한다."
+  ],
+  nodes: [
+    { id: "sequence", title: "uart_tx_sequence", text: "payload를 item과 expected로 생성", x: 4, y: 15, w: 17, h: 13, tone: "amber" },
+    { id: "seq_item", title: "uart_tx_seq_item", text: "한 byte transaction object", x: 27, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "sequencer", title: "sequencer API", text: "item queue의 put/get 경계", x: 50, y: 15, w: 17, h: 13, tone: "blue" },
+    { id: "driver", title: "uart_tx_driver", text: "item을 받아 interface 구동", x: 75, y: 15, w: 17, h: 13, tone: "rose" },
+    { id: "interface", title: "uart_tx_if", text: "UART TX pin bundle", x: 75, y: 45, w: 17, h: 13, tone: "slate" },
+    { id: "dut", title: "UART_Tx DUT", text: "interface 신호로 연결", x: 50, y: 45, w: 17, h: 13, tone: "cyan" },
+    { id: "monitor", title: "uart_tx_monitor", text: "interface에서 actual 복원", x: 27, y: 45, w: 17, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uart_tx_scoreboard", text: "expected와 actual 비교", x: 4, y: 62, w: 17, h: 13, tone: "green" }
+  ],
+  wires: [
+    { id: "sequence_item", from: "sequence", to: "seq_item" },
+    { id: "item_sequencer", from: "seq_item", to: "sequencer" },
+    { id: "sequencer_driver", from: "sequencer", to: "driver" },
+    { id: "driver_interface", from: "driver", to: "interface" },
+    { id: "interface_dut", from: "interface", to: "dut" },
+    { id: "interface_monitor", from: "interface", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "sequence_scoreboard", from: "sequence", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "interface 도입",
+      body: "UART TX pin을 uart_tx_if 하나로 묶어 DUT, driver, monitor가 같은 신호 묶음을 사용한다.",
+      activeNodes: ["driver", "interface", "dut", "monitor"],
+      activeWires: ["driver_interface", "interface_dut", "interface_monitor"],
+      code: "uart_tx_if I_UART_TxIf (\n    .i_Clk(r_Clk),\n    .i_Rsn(r_Rsn)\n);",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "sequence item 생성",
+      body: "sequence가 raw byte를 uart_tx_seq_item 객체로 포장하고 같은 값으로 expected 경로도 채운다.",
+      activeNodes: ["sequence", "seq_item", "scoreboard"],
+      activeWires: ["sequence_item", "sequence_scoreboard"],
+      code: "item = new(r_Payload[r_ByteIdx]);\nr_ExpQ.push_back(item.data);",
+      packetWire: "sequence_item",
+      packet: "48"
+    },
+    {
+      title: "sequencer put/get",
+      body: "sequence와 driver가 item queue를 직접 만지지 않고 sequencer API를 통해 객체를 전달한다.",
+      activeNodes: ["seq_item", "sequencer", "driver"],
+      activeWires: ["item_sequencer", "sequencer_driver"],
+      code: "uart_tx_sequencer_put_item(item);\nuart_tx_sequencer_get_item(item);",
+      packetWire: "sequencer_driver",
+      packet: "48"
+    },
+    {
+      title: "item부터 비교까지",
+      body: "driver가 item으로 interface를 구동하고 monitor가 actual을 복원하면 scoreboard가 expected와 비교한다.",
+      activeNodes: ["sequence", "seq_item", "sequencer", "driver", "interface", "dut", "monitor", "scoreboard"],
+      activeWires: ["sequence_item", "item_sequencer", "sequencer_driver", "driver_interface", "interface_dut", "interface_monitor", "monitor_scoreboard", "sequence_scoreboard"],
+      code: "I_UART_TxIf.r_TxData <= item.data;\nr_MonQ.push_back(r_Captured);",
+      packetWire: "driver_interface",
+      packet: "48"
+    }
+  ],
+  snippet: "tb_top_v9.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>

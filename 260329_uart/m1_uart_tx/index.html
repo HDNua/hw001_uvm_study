@@ -186,7 +186,7 @@ footer {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span><b>→</b><span>m06 sequence 분리</span><b>→</b><span>m07 expected 경로 분리</span><b>→</b><span>m08 역할 계층</span>
+      <span>UART 동작 이해</span><b>→</b><span>m01 직접 구동·검사</span><b>→</b><span>m02 task 분리</span><b>→</b><span>m03 병렬 실행</span><b>→</b><span>m04 scoreboard 분리</span><b>→</b><span>m05 queue handoff</span><b>→</b><span>m06 sequence 분리</span><b>→</b><span>m07 expected 경로 분리</span><b>→</b><span>m08 역할 계층</span><b>→</b><span>m09 interface·item·sequencer</span>
     </div>
 
     <div class="grid">
@@ -294,6 +294,18 @@ footer {
           <span>test가 payload·sequence·env 실행 관리</span>
           <span>env가 agent와 scoreboard를 병렬 실행</span>
           <span>agent가 driver와 monitor를 하나의 역할로 구성</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--violet)" href="m09_if_seqitem_sequencer/stage_flow_demo.html">
+        <span class="badge">m09</span>
+        <h2>m09_if_seqitem_sequencer</h2>
+        <p>UART TX pin을 interface로 묶고, byte를 sequence item 객체로 만들어 sequencer API로 전달합니다.</p>
+        <div class="points">
+          <span>uart_tx_if로 DUT pin bundle 구성</span>
+          <span>uart_tx_seq_item으로 transaction 표현</span>
+          <span>sequencer put/get API로 sequence-driver 분리</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>
