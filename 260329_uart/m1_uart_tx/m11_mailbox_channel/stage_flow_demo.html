@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m11_mailbox_channel Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m11_mailbox_channel",
+  headline: "queue + event handoff를 typed SystemVerilog mailbox로 교체한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m10_uvc_block 대비: 역할과 폴더 구조는 유지하고 세 transaction 경로를 mailbox put/get으로 바꾼다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../uart_tx_demo.html" },
+    { label: "← m10", href: "../m10_uvc_block/stage_flow_demo.html" }
+  ],
+  focus: [
+    "sequence는 uart_tx_seq_item을 driver와 expected mailbox에 put한다.",
+    "driver와 scoreboard는 mailbox.get()에서 item이 도착할 때까지 자연스럽게 block된다.",
+    "monitor도 actual byte를 item으로 감싸 mailbox에 전달하므로 세 경로가 같은 transaction 단위를 사용한다."
+  ],
+  nodes: [
+    { id: "sequence", title: "sequence", text: "driver·expected item 생성", x: 4, y: 15, w: 17, h: 13, tone: "amber" },
+    { id: "drv_mbx", title: "driver mailbox", text: "mailbox #(uart_tx_seq_item)", x: 28, y: 15, w: 20, h: 13, tone: "blue" },
+    { id: "driver", title: "driver", text: "blocking get 후 DUT 구동", x: 55, y: 15, w: 17, h: 13, tone: "rose" },
+    { id: "interface", title: "uart_tx_if", text: "UART TX pin bundle", x: 79, y: 31, w: 16, h: 13, tone: "slate" },
+    { id: "monitor", title: "monitor", text: "actual item 생성", x: 58, y: 58, w: 16, h: 13, tone: "green" },
+    { id: "mon_mbx", title: "actual mailbox", text: "monitor → scoreboard", x: 34, y: 58, w: 17, h: 13, tone: "teal" },
+    { id: "scoreboard", title: "scoreboard", text: "expected·actual get 비교", x: 4, y: 61, w: 20, h: 13, tone: "green" },
+    { id: "exp_mbx", title: "expected mailbox", text: "sequence → scoreboard", x: 4, y: 37, w: 20, h: 13, tone: "violet" }
+  ],
+  wires: [
+    { id: "sequence_drv_mbx", from: "sequence", to: "drv_mbx" },
+    { id: "drv_mbx_driver", from: "drv_mbx", to: "driver" },
+    { id: "driver_interface", from: "driver", to: "interface" },
+    { id: "interface_monitor", from: "interface", to: "monitor" },
+    { id: "monitor_mon_mbx", from: "monitor", to: "mon_mbx" },
+    { id: "mon_mbx_scoreboard", from: "mon_mbx", to: "scoreboard" },
+    { id: "sequence_exp_mbx", from: "sequence", to: "exp_mbx" },
+    { id: "exp_mbx_scoreboard", from: "exp_mbx", to: "scoreboard" }
+  ],
+  steps: [
+    {
+      title: "typed mailbox put",
+      body: "sequence가 만든 sequence item 객체를 driver mailbox와 expected mailbox에 각각 넣는다.",
+      activeNodes: ["sequence", "drv_mbx", "exp_mbx"],
+      activeWires: ["sequence_drv_mbx", "sequence_exp_mbx"],
+      code: "r_DrvMbx.put(driver_item);\nr_ExpMbx.put(expected_item);",
+      packetWire: "sequence_drv_mbx",
+      packet: "item 48"
+    },
+    {
+      title: "blocking get",
+      body: "driver는 별도의 queue empty 검사나 event 대기 없이 mailbox.get()에서 item을 기다린다.",
+      activeNodes: ["drv_mbx", "driver", "interface"],
+      activeWires: ["drv_mbx_driver", "driver_interface"],
+      code: "r_DrvMbx.get(item);\nI_UART_TxIf.r_TxData <= item.data;",
+      packetWire: "drv_mbx_driver",
+      packet: "item 48"
+    },
+    {
+      title: "actual item 전달",
+      body: "monitor가 복원한 actual byte도 sequence item으로 감싸 actual mailbox에 넣는다.",
+      activeNodes: ["interface", "monitor", "mon_mbx"],
+      activeWires: ["interface_monitor", "monitor_mon_mbx"],
+      code: "item = new(r_Captured);\nr_MonMbx.put(item);",
+      packetWire: "monitor_mon_mbx",
+      packet: "item 48"
+    },
+    {
+      title: "두 mailbox 비교",
+      body: "scoreboard는 expected와 actual mailbox에서 item을 하나씩 blocking get해 data를 비교한다.",
+      activeNodes: ["exp_mbx", "mon_mbx", "scoreboard"],
+      activeWires: ["exp_mbx_scoreboard", "mon_mbx_scoreboard"],
+      code: "r_ExpMbx.get(expected);\nr_MonMbx.get(actual);\nif (actual.data === expected.data)",
+      packetWire: "mon_mbx_scoreboard",
+      packet: "PASS"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_sequencer.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
