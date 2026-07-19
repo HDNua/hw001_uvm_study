@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>UART TX 검증 심화 커리큘럼</title>
+<style>
+:root {
+  --bg: #0f1419;
+  --panel: #171e26;
+  --panel-hover: #1b2530;
+  --line: rgba(153, 170, 187, .28);
+  --text: #edf4fa;
+  --muted: #a7b6c4;
+  --blue: #5aa7ff;
+  --green: #39c88f;
+  --violet: #a894ff;
+  --amber: #f0bf61;
+  --cyan: #69dce9;
+  --slate: #8fa3b8;
+  --teal: #43d0bd;
+  --rose: #ff7594;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 82% 4%, rgba(90, 167, 255, .11), transparent 32rem),
+    var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI Variable", "Segoe UI", Arial, sans-serif;
+}
+.wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 24px 56px;
+}
+header {
+  margin-bottom: 28px;
+}
+.eyebrow {
+  margin: 0 0 10px;
+  color: var(--blue);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+h1 {
+  margin: 0;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.15;
+}
+.sub {
+  max-width: 780px;
+  margin: 14px 0 0;
+  color: #c7d7e6;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.flow span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 5px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(23, 30, 38, .78);
+}
+.flow span.todo {
+  opacity: .55;
+}
+.flow b {
+  color: var(--blue);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.card {
+  position: relative;
+  display: flex;
+  min-height: 280px;
+  flex-direction: column;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  text-decoration: none;
+  transition: transform .16s ease, border-color .16s ease, background .16s ease;
+}
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--tone);
+}
+.card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--tone) 65%, transparent);
+  background: var(--panel-hover);
+}
+.card:focus-visible {
+  outline: 2px solid var(--tone);
+  outline-offset: 3px;
+}
+.badge {
+  align-self: flex-start;
+  min-width: 42px;
+  margin-bottom: 18px;
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--tone) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--tone) 12%, transparent);
+  color: color-mix(in srgb, var(--tone) 80%, white);
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+}
+h2 {
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+.card p {
+  margin: 0;
+  color: #c7d7e6;
+  font-size: 13px;
+  line-height: 1.62;
+}
+.points {
+  display: grid;
+  gap: 7px;
+  margin: 16px 0 20px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.points span {
+  padding-left: 12px;
+  border-left: 2px solid color-mix(in srgb, var(--tone) 55%, transparent);
+}
+.open {
+  margin-top: auto;
+  color: color-mix(in srgb, var(--tone) 72%, white);
+  font-size: 12px;
+  font-weight: 900;
+}
+footer {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+footer a {
+  color: var(--blue);
+  font-weight: 800;
+  text-decoration: none;
+}
+@media (max-width: 840px) {
+  .grid { grid-template-columns: 1fr; }
+  .card { min-height: 0; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 28px 16px 40px; }
+  .flow { align-items: flex-start; flex-direction: column; }
+  .flow b { display: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">hw001 · UART TX VERIF</p>
+    <h1>UART TX 검증 심화 커리큘럼</h1>
+    <p class="sub">m1_uart_tx에서 완성한 UVM 구조를 고정하고, 자극과 체킹의 깊이를 단계별로 확장합니다. 랜덤 재현성에서 시작해 constraint, corner 시나리오, SVA와 functional coverage로 나아갑니다.</p>
+  </header>
+
+  <main>
+    <div class="flow" aria-label="현재 학습 순서">
+      <span>m01 seed·개수 파라미터화</span><b>→</b><span class="todo">m02 rand·constraint</span><b>→</b><span class="todo">m03 corner sequence</span><b>→</b><span class="todo">m04 전송 중 리셋</span><b>→</b><span class="todo">m05 프로토콜 SVA</span><b>→</b><span class="todo">m06 functional coverage</span><b>→</b><span class="todo">m07 multi-seed 회귀 (선택)</span>
+    </div>
+
+    <div class="grid">
+      <a class="card" style="--tone: var(--slate)" href="../m1_uart_tx/index.html">
+        <span class="badge">m1</span>
+        <h2>m1_uart_tx 커리큘럼</h2>
+        <p>순수 SystemVerilog 테스트벤치에서 실제 UVM까지 구조를 단계적으로 전환한 이전 모듈입니다.</p>
+        <div class="points">
+          <span>m01 직접 구동부터 m15 minimal UVM까지</span>
+          <span>이 모듈(m2)의 UVM 구조 출발점</span>
+          <span>UART TX 동작 데모 포함</span>
+        </div>
+        <span class="open">m1 목차 열기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--violet)" href="m01_seed_param/stage_flow_demo.html">
+        <span class="badge">m01</span>
+        <h2>m01_seed_param</h2>
+        <p>seed와 자극 byte 수를 plusarg로 받아 랜덤 재현성을 확보하고, 실행 스크립트를 불변식 검사로 전환합니다.</p>
+        <div class="points">
+          <span>+SEED, +NUM_BYTES plusarg와 config echo</span>
+          <span>srandom(seed) 기반 랜덤 재현성</span>
+          <span>고정 건수 검사 대신 경로 불변식</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+    </div>
+  </main>
+
+  <footer>새 검증 단계는 XSim 실행 검증이 완료된 뒤 이 목차에 순서대로 추가합니다. 구조 전환 커리큘럼은 <a href="../m1_uart_tx/index.html">m1_uart_tx</a>를 참조하세요.</footer>
+</div>
+</body>
+</html>

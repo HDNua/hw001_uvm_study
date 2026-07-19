@@ -1,6 +1,6 @@
 # hw001 UVM Study
 
-UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용 프로젝트입니다. 직접 구동·검사에서 역할 분리와 순수 SystemVerilog UVC bridge를 거쳐, `m15_uvm_minimal`에서는 실제 UVM object, component, phase와 TLM port로 전환합니다.
+UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용 프로젝트입니다. 직접 구동·검사에서 역할 분리와 순수 SystemVerilog UVC bridge를 거쳐, `m15_uvm_minimal`에서는 실제 UVM object, component, phase와 TLM port로 전환합니다. `m2_uart_tx_verif`부터는 완성된 UVM 구조를 고정하고 자극과 체킹의 깊이를 단계별로 확장합니다.
 
 ## 프로젝트 구조
 
@@ -239,6 +239,32 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 - `uart_tx_demo.html`: UART TX의 동작을 살펴보는 공용 인터랙티브 데모
 - `stage_flow_demo.html`: 공통 템플릿에 단계별 `STAGE` 데이터만 정의하는 검증 흐름 설명
 
+`260329_uart/m2_uart_tx_verif/`는 검증 심화 모듈입니다. m1의 최종 UVM 구조를 복사해 시작하며, 각 단계는 구조가 아니라 자극과 체킹의 깊이를 확장합니다.
+
+```text
+260329_uart/m2_uart_tx_verif/
+├── index.html
+├── stage_flow.css
+├── stage_flow.js
+├── m00_rtl/
+│   └── UART_Tx.sv
+└── m01_seed_param/
+    ├── sim/
+    │   ├── run_xsim.ps1
+    │   └── view_xsim.ps1
+    ├── tb/
+    │   ├── test/
+    │   │   └── uart_tx_test.sv
+    │   └── top/
+    │       └── tb_top.sv
+    ├── uvc/
+    │   └── uart_tx/
+    │       └── (m1/m15와 같은 역할 구성)
+    └── stage_flow_demo.html
+```
+
+- `m01_seed_param`: seed와 자극 byte 수를 `+SEED`, `+NUM_BYTES` plusarg로 받아 랜덤 재현성을 확보하고, 실행 스크립트를 고정 건수 일치 대신 경로 불변식 검사로 전환한 단계
+
 ## 필요 환경
 
 - AMD Vivado/XSim 2025.2 또는 호환 버전과 내장 UVM 라이브러리
@@ -265,6 +291,15 @@ $env:VIVADO_BIN = '<xvlog, xelab, xsim이 있는 디렉터리>'
 ```
 
 성공하면 m15 로그에 UVM component/TLM 연결, smoke·pattern·random 세 case, sequence·driver·expected analysis·monitor 처리 각 15건과 scoreboard PASS 15건이 출력됩니다. 각 case는 `[SB] RESULT: pass=5 fail=0`으로 끝나고 UVM report summary는 `UVM_ERROR : 0`, `UVM_FATAL : 0`을 보여줍니다. 파형 데이터와 로그를 포함한 모든 시뮬레이션 산출물은 `sim/out/`에 생성되며 Git에서 제외됩니다.
+
+`m2_uart_tx_verif`의 단계는 seed와 자극 byte 수를 스크립트 인자로 받을 수 있습니다.
+
+```powershell
+cd .\260329_uart\m2_uart_tx_verif\m01_seed_param\sim
+.\run_xsim.ps1 -Seed 7 -NumBytes 8
+```
+
+같은 seed는 같은 random payload를 재현합니다. m2 실행 스크립트는 고정 건수 일치 대신 sequence, driver, monitor와 scoreboard PASS 건수의 일치, case별 `fail=0`과 config echo를 검사하고 성공 시 `PASS: seed=... num_bytes=... items=... cases=3`을 출력합니다.
 
 파형을 GUI에서 열려면 시뮬레이션 완료 후 다음 명령을 실행합니다.
 
@@ -294,6 +329,8 @@ $env:VIVADO_BIN = '<xvlog, xelab, xsim이 있는 디렉터리>'
 - `260329_uart/m1_uart_tx/m13_sv_seq_item_port/stage_flow_demo.html`
 - `260329_uart/m1_uart_tx/m14_sv_analysis_port/stage_flow_demo.html`
 - `260329_uart/m1_uart_tx/m15_uvm_minimal/stage_flow_demo.html`
+- `260329_uart/m2_uart_tx_verif/index.html`
+- `260329_uart/m2_uart_tx_verif/m01_seed_param/stage_flow_demo.html`
 
 각 데모는 외부 웹 폰트 없이 로컬 시스템 글꼴만 사용합니다.
 

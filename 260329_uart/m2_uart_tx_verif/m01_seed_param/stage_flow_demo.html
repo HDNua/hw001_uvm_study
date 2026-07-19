@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m2/m01_seed_param Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m2/m01_seed_param",
+  headline: "seed와 자극 크기를 실행 시점 인자로 바꿔 랜덤 재현성을 확보한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m1/m15_uvm_minimal 대비: UVM 구조는 그대로 두고 +SEED, +NUM_BYTES plusarg와 dynamic payload로 자극 구성을 실행 시점에 정한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
+    { label: "← m1/m15", href: "../../m1_uart_tx/m15_uvm_minimal/stage_flow_demo.html" }
+  ],
+  focus: [
+    "+SEED와 +NUM_BYTES plusarg가 test 구성을 결정하고 로그의 config echo로 확인된다.",
+    "process::self().srandom(seed)로 같은 seed가 같은 random payload를 재현한다.",
+    "실행 스크립트가 고정 건수 대신 sequence == driver == monitor == PASS 불변식을 검사한다."
+  ],
+  nodes: [
+    { id: "script", title: "run_xsim.ps1", text: "Seed·NumBytes 인자 전달", x: 3, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "test", title: "uvm_test", text: "plusarg 해석·srandom", x: 23, y: 15, w: 18, h: 13, tone: "amber" },
+    { id: "sequence", title: "uvm_sequence", text: "dynamic payload 전송", x: 44, y: 15, w: 17, h: 13, tone: "blue" },
+    { id: "driver", title: "uvm_driver", text: "req 구동", x: 64, y: 15, w: 15, h: 13, tone: "rose" },
+    { id: "dut", title: "DUT / vif", text: "UART TX 직렬 출력", x: 82, y: 15, w: 15, h: 13, tone: "slate" },
+    { id: "monitor", title: "uvm_monitor", text: "actual publish", x: 78, y: 59, w: 18, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uvm_scoreboard", text: "expected·actual 비교", x: 51, y: 59, w: 21, h: 13, tone: "green" },
+    { id: "invariant", title: "불변식 검사", text: "카운트 일관성·fail=0", x: 23, y: 55, w: 20, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "script_test", from: "script", to: "test" },
+    { id: "test_sequence", from: "test", to: "sequence" },
+    { id: "sequence_driver", from: "sequence", to: "driver" },
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "dut_monitor", from: "dut", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "sequence_scoreboard", from: "sequence", to: "scoreboard" },
+    { id: "scoreboard_invariant", from: "scoreboard", to: "invariant" }
+  ],
+  steps: [
+    {
+      title: "plusarg로 실행 구성",
+      body: "스크립트가 -Seed와 -NumBytes를 xsim -testplusarg로 전달하고 test가 $value$plusargs로 읽는다. 로그의 config echo가 스크립트 인자와 일치해야 한다.",
+      activeNodes: ["script", "test"],
+      activeWires: ["script_test"],
+      code: "if (!$value$plusargs(\"SEED=%d\", seed))\n    seed = 1;\nif (!$value$plusargs(\"NUM_BYTES=%d\", num_bytes))\n    num_bytes = UART_TX_DEFAULT_NUM_BYTES;",
+      packetWire: "script_test",
+      packet: "SEED=7"
+    },
+    {
+      title: "seed 적용과 payload 적재",
+      body: "run_phase가 process::self().srandom(seed)로 랜덤 상태를 고정하고 dynamic payload를 case별로 적재한다. 같은 seed는 같은 random payload를 재현한다.",
+      activeNodes: ["test", "sequence"],
+      activeWires: ["test_sequence"],
+      code: "rand_process = process::self();\nrand_process.srandom(seed);\npayload = new[num_bytes];",
+      packetWire: "test_sequence",
+      packet: "payload"
+    },
+    {
+      title: "가변 길이 case 실행",
+      body: "smoke, pattern, random 세 case가 num_bytes 길이로 실행된다. request·expected·actual 경로와 UVM 구조는 m15를 그대로 유지한다.",
+      activeNodes: ["sequence", "driver", "dut", "monitor", "scoreboard"],
+      activeWires: ["sequence_driver", "driver_dut", "dut_monitor", "monitor_scoreboard", "sequence_scoreboard"],
+      code: "seq.set_payload(sequence_name, payload);\nseq.start(env.agent.sequencer);",
+      packetWire: "sequence_driver",
+      packet: "req"
+    },
+    {
+      title: "불변식 검사",
+      body: "스크립트가 로그에서 sequence, driver, monitor와 scoreboard PASS 건수의 일치, case별 fail=0과 config echo를 검사한다. 고정 건수 하드코딩은 사라진다.",
+      activeNodes: ["scoreboard", "invariant", "script"],
+      activeWires: ["scoreboard_invariant"],
+      code: "$Counts = @($SequenceCount, $DriverCount,\n    $ExpectedWrCount, $MonitorCount, $PassCount)\nif (@($Counts | Select-Object -Unique).Count -ne 1) {\n    throw \"Path invariant broken\"\n}",
+      packetWire: "scoreboard_invariant",
+      packet: "pass=N"
+    }
+  ],
+  snippet: "tb/test/uart_tx_test.sv / sim/run_xsim.ps1",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
