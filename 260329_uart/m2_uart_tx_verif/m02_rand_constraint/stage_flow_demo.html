@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m2/m02_rand_constraint Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m2/m02_rand_constraint",
+  headline: "자극 값 생성을 test 코드에서 sequence item constraint로 옮긴다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m2/m01_seed_param 대비: uart_tx_seq_item에 rand data와 rand idle_gap이 생기고, random case는 item.randomize()로 자극을 만든다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
+    { label: "← m01", href: "../m01_seed_param/stage_flow_demo.html" }
+  ],
+  focus: [
+    "constraint c_data_dist가 경계값(0x00, 0xff) 가중치를, c_idle_gap이 byte 간격 범위를 문서화한다.",
+    "고정 payload case도 idle_gap을 randomize해 byte 사이 시간축을 흔든다.",
+    "driver가 idle_gap만큼 대기한 뒤 구동하며, seed 재현성과 경로 불변식은 m01을 유지한다."
+  ],
+  nodes: [
+    { id: "test", title: "uvm_test", text: "고정 payload·case 관리", x: 3, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "sequence", title: "uvm_sequence", text: "randomize 호출·item 전송", x: 23, y: 15, w: 18, h: 13, tone: "amber" },
+    { id: "item", title: "uart_tx_seq_item", text: "rand data·idle_gap constraint", x: 44, y: 15, w: 17, h: 13, tone: "blue" },
+    { id: "driver", title: "uvm_driver", text: "gap 대기 후 구동", x: 64, y: 15, w: 15, h: 13, tone: "rose" },
+    { id: "dut", title: "DUT / vif", text: "UART TX 직렬 출력", x: 82, y: 15, w: 15, h: 13, tone: "slate" },
+    { id: "monitor", title: "uvm_monitor", text: "actual publish", x: 78, y: 59, w: 18, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uvm_scoreboard", text: "expected·actual 비교", x: 51, y: 59, w: 21, h: 13, tone: "green" },
+    { id: "invariant", title: "불변식 검사", text: "카운트 일관성·fail=0", x: 23, y: 55, w: 20, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "test_sequence", from: "test", to: "sequence" },
+    { id: "sequence_item", from: "sequence", to: "item" },
+    { id: "item_driver", from: "item", to: "driver" },
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "dut_monitor", from: "dut", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "sequence_scoreboard", from: "sequence", to: "scoreboard" },
+    { id: "scoreboard_invariant", from: "scoreboard", to: "invariant" }
+  ],
+  steps: [
+    {
+      title: "rand 필드와 constraint",
+      body: "sequence item이 rand data와 rand idle_gap을 선언하고, 값의 분포와 범위를 constraint로 문서화한다. 경계값 0x00과 0xff에 가중치를 둔다.",
+      activeNodes: ["item"],
+      activeWires: [],
+      code: "rand logic [7:0] data;\nrand int unsigned idle_gap;\nconstraint c_data_dist {\n    data dist { 8'h00 := 2, 8'hff := 2, [8'h01 : 8'hfe] :/ 12 };\n}",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "random case의 full randomize",
+      body: "random case에서 test는 개수만 전달하고, sequence가 item.randomize()로 data와 idle_gap을 함께 생성한다. 실패는 uvm_fatal로 처리한다.",
+      activeNodes: ["test", "sequence", "item"],
+      activeWires: ["test_sequence", "sequence_item"],
+      code: "seq.set_random_payload(sequence_name, num_bytes);\nif (!req_item.randomize())\n    `uvm_fatal(\"RANDFAIL\", \"uart_tx_seq_item randomize failed\")",
+      packetWire: "sequence_item",
+      packet: "rand"
+    },
+    {
+      title: "고정 payload의 gap randomize",
+      body: "smoke·pattern case는 data를 payload에서 그대로 쓰되 randomize(idle_gap)로 간격만 흔든다. 데이터 비교 결과는 그대로 유지된다.",
+      activeNodes: ["sequence", "item"],
+      activeWires: ["sequence_item"],
+      code: "req_item.data = payload[r_ByteIdx];\nif (!req_item.randomize(idle_gap))\n    `uvm_fatal(\"RANDFAIL\", \"uart_tx_seq_item gap randomize failed\")",
+      packetWire: "sequence_item",
+      packet: "gap"
+    },
+    {
+      title: "gap 대기 구동과 불변식 검사",
+      body: "driver가 idle_gap 사이클을 기다린 뒤 ready를 확인하고 구동한다. 실행 스크립트의 경로 불변식과 seed 재현성 검사는 m01과 동일하다.",
+      activeNodes: ["driver", "dut", "monitor", "scoreboard", "invariant"],
+      activeWires: ["item_driver", "driver_dut", "dut_monitor", "monitor_scoreboard", "scoreboard_invariant"],
+      code: "repeat (item.idle_gap) @(posedge vif.i_Clk);\ndo @(posedge vif.i_Clk); while (!vif.w_TxReady);",
+      packetWire: "driver_dut",
+      packet: "req+gap"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_seq_item.sv / uart_tx_sequence.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>

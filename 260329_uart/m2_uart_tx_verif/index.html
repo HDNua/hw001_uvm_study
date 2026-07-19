@@ -194,7 +194,7 @@ footer a {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>m01 seed·개수 파라미터화</span><b>→</b><span class="todo">m02 rand·constraint</span><b>→</b><span class="todo">m03 corner sequence</span><b>→</b><span class="todo">m04 전송 중 리셋</span><b>→</b><span class="todo">m05 프로토콜 SVA</span><b>→</b><span class="todo">m06 functional coverage</span><b>→</b><span class="todo">m07 multi-seed 회귀 (선택)</span>
+      <span>m01 seed·개수 파라미터화</span><b>→</b><span>m02 rand·constraint</span><b>→</b><span class="todo">m03 corner sequence</span><b>→</b><span class="todo">m04 전송 중 리셋</span><b>→</b><span class="todo">m05 프로토콜 SVA</span><b>→</b><span class="todo">m06 functional coverage</span><b>→</b><span class="todo">m07 multi-seed 회귀 (선택)</span>
     </div>
 
     <div class="grid">
@@ -218,6 +218,18 @@ footer a {
           <span>+SEED, +NUM_BYTES plusarg와 config echo</span>
           <span>srandom(seed) 기반 랜덤 재현성</span>
           <span>고정 건수 검사 대신 경로 불변식</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--blue)" href="m02_rand_constraint/stage_flow_demo.html">
+        <span class="badge">m02</span>
+        <h2>m02_rand_constraint</h2>
+        <p>sequence item에 rand 필드와 constraint를 도입해 자극 값 생성을 test 코드에서 constraint로 옮깁니다.</p>
+        <div class="points">
+          <span>rand data·idle_gap과 dist 가중치</span>
+          <span>random case의 item.randomize()</span>
+          <span>driver의 gap 대기와 시간축 변화</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>
