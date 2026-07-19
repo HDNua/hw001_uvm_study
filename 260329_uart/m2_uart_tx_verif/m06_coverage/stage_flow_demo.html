@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m2/m06_coverage Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m2/m06_coverage",
+  headline: "랜덤을 돌렸는데 무엇을 얼마나 쳤는가 — functional coverage로 계량한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m2/m05_sva 대비: driver가 실제 구동한 request item을 req_ap로 publish하고, coverage subscriber가 data/gap/busy coverpoint와 data x gap cross를 sample한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
+    { label: "← m05", href: "../m05_sva/stage_flow_demo.html" }
+  ],
+  focus: [
+    "coverage는 driver가 실제 구동한 item에서 sample한다. 계획이 아니라 실행된 자극을 계량한다.",
+    "data 경계값·구간 bins, gap 구간 bins, busy 주입 여부와 data x gap cross를 측정한다.",
+    "실행 스크립트가 coverage 요약을 파싱해 최소 목표(-CovMin)를 검사한다. 목표 미달이면 NumBytes를 늘려 다시 도는 closure 루프를 체험한다.",
+    "측정 결과에 의문이 하나 남는다: data coverage가 seed와 byte 수에 무관하게 71.4%에 고정된다. 이 단서는 다음 단계에서 추적한다."
+  ],
+  nodes: [
+    { id: "sequence", title: "uvm_sequence", text: "constraint 기반 자극", x: 3, y: 15, w: 17, h: 13, tone: "amber" },
+    { id: "driver", title: "uvm_driver", text: "구동 후 req_ap.write", x: 23, y: 15, w: 18, h: 13, tone: "rose" },
+    { id: "dut", title: "DUT / vif", text: "UART TX 전송", x: 44, y: 15, w: 17, h: 13, tone: "slate" },
+    { id: "coverage", title: "uart_tx_coverage", text: "covergroup sample", x: 64, y: 15, w: 15, h: 13, tone: "violet" },
+    { id: "bins", title: "bins / cross", text: "data·gap·busy 조합", x: 82, y: 15, w: 15, h: 13, tone: "blue" },
+    { id: "report", title: "report_phase", text: "coverpoint별 % 출력", x: 78, y: 59, w: 18, h: 13, tone: "green" },
+    { id: "script", title: "실행 스크립트", text: "-CovMin 목표 검사", x: 51, y: 59, w: 21, h: 13, tone: "teal" },
+    { id: "closure", title: "closure 루프", text: "미달 시 자극 확대", x: 23, y: 55, w: 20, h: 13, tone: "cyan" }
+  ],
+  wires: [
+    { id: "sequence_driver", from: "sequence", to: "driver" },
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "driver_coverage", from: "driver", to: "coverage" },
+    { id: "coverage_bins", from: "coverage", to: "bins" },
+    { id: "coverage_report", from: "coverage", to: "report" },
+    { id: "report_script", from: "report", to: "script" },
+    { id: "script_closure", from: "script", to: "closure" },
+    { id: "closure_sequence", from: "closure", to: "sequence" }
+  ],
+  steps: [
+    {
+      title: "driver의 request publish",
+      body: "driver가 byte를 실제로 구동한 뒤 req_ap.write(item)로 publish한다. 계획된 자극이 아니라 DUT에 실제로 도달한 자극이 coverage의 근거가 된다.",
+      activeNodes: ["sequence", "driver", "dut"],
+      activeWires: ["sequence_driver", "driver_dut", "driver_coverage"],
+      code: "uvm_analysis_port #(uart_tx_seq_item) req_ap;\n...\nreq_ap.write(item);",
+      packetWire: "driver_coverage",
+      packet: "item"
+    },
+    {
+      title: "covergroup의 bins 설계",
+      body: "data는 경계값(00, ff, 55, aa)과 low/mid/high 구간으로, gap은 back-to-back과 bit 시간 단위 구간으로 나눈다. busy 주입 여부와 data x gap cross도 측정한다.",
+      activeNodes: ["coverage", "bins"],
+      activeWires: ["coverage_bins"],
+      code: "cp_data: coverpoint item.data {\n    bins zero = {8'h00};  bins ones = {8'hff};\n    bins low_range = {[8'h01 : 8'h3f]}; ...\n}\ncx_data_gap: cross cp_data, cp_gap;",
+      packetWire: "coverage_bins",
+      packet: "sample"
+    },
+    {
+      title: "report와 스크립트 목표 검사",
+      body: "report_phase가 coverpoint별 coverage를 marker로 출력하고, 실행 스크립트가 total을 파싱해 -CovMin 목표와 비교한다. 목표 미달은 실패다.",
+      activeNodes: ["report", "script"],
+      activeWires: ["coverage_report", "report_script"],
+      code: "$CovTotal = [double] $CovMatch.Groups[1].Value\nif ($CovTotal -lt $CovMin) {\n    throw \"Coverage below goal\"\n}",
+      packetWire: "report_script",
+      packet: "79.5%"
+    },
+    {
+      title: "coverage closure 루프",
+      body: "기본 5 byte에서 cross bins는 다 채울 수 없다. -NumBytes를 늘리면 cross coverage가 오르는 것을 관찰할 수 있다(5→32 byte에서 cross 46%→68%). 자극 확대와 측정을 반복하는 것이 closure다.",
+      activeNodes: ["closure", "sequence"],
+      activeWires: ["script_closure", "closure_sequence"],
+      code: ".\\run_xsim.ps1 -Seed 7 -NumBytes 32\n# PASS: ... coverage=84.8%",
+      packetWire: "closure_sequence",
+      packet: "more!"
+    },
+    {
+      title: "관찰: data coverage 71.4% 고정",
+      body: "pattern case가 0x55와 0xaa를 구동한다고 믿고 있는데 alt bins가 잡히지 않는다. seed를 바꿔도, byte 수를 32로 늘려도 data는 71.4%(5/7 bins)에 고정된다. -CovMin 70 검사는 통과하므로 실행은 green이다. 자극 어딘가가 계량과 다르게 움직이고 있다 — 이 단서는 다음 단계에서 추적한다.",
+      activeNodes: ["coverage", "bins", "report"],
+      activeWires: ["coverage_bins", "coverage_report"],
+      code: "# seed=1  N=5 : data=71.4% gap=100.0% busy=100.0%\n# seed=7  N=32: data=71.4% gap=100.0% busy=100.0%\n# 55/aa bins hit: 0 — pattern payload가 실려 있지 않다?",
+      packetWire: "coverage_report",
+      packet: "71.4%?"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_coverage.sv / sim/run_xsim.ps1",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
