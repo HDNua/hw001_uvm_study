@@ -370,6 +370,13 @@ cd .\260329_uart\m2_uart_tx_verif\m08_multi_seed\sim
 
 각 데모는 외부 웹 폰트 없이 로컬 시스템 글꼴만 사용합니다.
 
+## AI 보조 UVM 전환 문서
+
+- [Pure TB → UVM 변환 매뉴얼](0_ai/0_global/manuals/UVM_Conversion_Manual.md)은 이 저장소의 UART TX 교육 단계와 XSim 실행 규약을 바탕으로 작성한 저장소 전용 학습 자료입니다. 범용 UVM 표준이나 공식 인증 문서를 대신하지 않습니다.
+- [랄프 운용층 — UVM 전환 루프 설계](0_ai/0_global/manuals/UVM_Ralph_Operations.md)는 **DRAFT / DO NOT RUN** 상태입니다. 승인된 isolated sandbox, 제한된 자격 증명과 네트워크, 깨끗하고 폐기 가능한 clone, 검토된 명령과 검증 게이트가 준비되기 전에는 실행하지 마십시오. branch와 worktree만으로는 보안 격리가 되지 않습니다.
+
+AMD Vivado/XSim과 UVM 라이브러리·표준은 이 저장소에 포함되지 않습니다. 필요한 도구와 라이브러리는 각 권리자의 배포 조건과 라이선스 약관에 따라 별도로 준비해야 합니다. 이 프로젝트와 문서는 AMD/Xilinx, Accellera/IEEE, Anthropic, OpenAI, Zhipu AI 또는 문서에서 언급하는 다른 공급업체와 제휴하거나 이들의 후원·승인을 받은 것이 아닙니다.
+
 ## 라이선스
 
 이 프로젝트는 [MIT License](LICENSE)로 배포됩니다.

@@ -1,11 +1,18 @@
 # 로컬 전용 AI 가이드라인
 /0_ai/0_local/
 
+# Repo-local Claude 개인 설정
+/.claude/settings.local.json
+
 # AI 대화 기록
 /0_ai/2_chat/
 
 # 계획 문서
 /0_ai/0_global/plan/
+
+# Ralph 로컬 실행 상태와 로그
+/**/ralph/state.json
+/**/ralph/logs/
 
 # 시뮬레이션 산출물
 /260329_uart/**/sim/out/
