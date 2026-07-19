@@ -194,7 +194,7 @@ footer a {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>m01 seed·개수 파라미터화</span><b>→</b><span>m02 rand·constraint</span><b>→</b><span>m03 corner sequence</span><b>→</b><span>m04 전송 중 리셋</span><b>→</b><span class="todo">m05 프로토콜 SVA</span><b>→</b><span class="todo">m06 functional coverage</span><b>→</b><span class="todo">m07 multi-seed 회귀 (선택)</span>
+      <span>m01 seed·개수 파라미터화</span><b>→</b><span>m02 rand·constraint</span><b>→</b><span>m03 corner sequence</span><b>→</b><span>m04 전송 중 리셋</span><b>→</b><span>m05 프로토콜 SVA</span><b>→</b><span class="todo">m06 functional coverage</span><b>→</b><span class="todo">m07 multi-seed 회귀 (선택)</span>
     </div>
 
     <div class="grid">
@@ -254,6 +254,18 @@ footer a {
           <span>test의 vif 기반 리셋 주입</span>
           <span>monitor abort와 재동기화</span>
           <span>scoreboard on_reset 목표 조정</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--cyan)" href="m05_sva/stage_flow_demo.html">
+        <span class="badge">m05</span>
+        <h2>m05_sva</h2>
+        <p>interface가 프레임 타이밍 속성 4개를 SVA로 상시 감시해 scoreboard와 상보적인 감시망을 만듭니다.</p>
+        <div class="points">
+          <span>start/stop bit 폭과 ready 타이밍</span>
+          <span>disable iff 기반 리셋 무효화</span>
+          <span>monitor framing 검사 error 승격</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>

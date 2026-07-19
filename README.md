@@ -265,7 +265,9 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 │   └── (m01과 같은 단계 구성)
 ├── m03_corner/
 │   └── (m01과 같은 단계 구성)
-└── m04_mid_reset/
+├── m04_mid_reset/
+│   └── (m01과 같은 단계 구성)
+└── m05_sva/
     └── (m01과 같은 단계 구성)
 ```
 
@@ -273,6 +275,7 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 - `m02_rand_constraint`: sequence item에 `rand` data·idle_gap과 constraint(dist 가중치, 간격 범위)를 도입하고, random case를 test의 `$urandom_range` 대신 `item.randomize()`로 생성하며 driver가 랜덤 간격으로 구동하는 단계
 - `m03_corner`: back-to-back(idle_gap=0)과 전송 중 valid 주입 corner case를 추가해 "busy 중 valid는 조용히 무시·유실된다"는 핸드셰이크 규약을 자극과 체킹으로 확정하고 RTL 헤더에 규약 절을 기록한 단계
 - `m04_mid_reset`: test가 프레임 중간에 리셋을 주입하는 case를 추가해 monitor의 capture abort·재동기화, scoreboard의 in-flight expected 제외(on_reset), driver의 리셋 해제 대기까지 복구 경로를 검증하는 단계 (`NUM_BYTES >= 2` 필요)
+- `m05_sva`: interface가 idle serial, start/stop bit 폭, ready 프레임 타이밍 속성 4개를 SVA로 상시 감시하고 monitor framing 검사를 error로 승격한 단계. scoreboard(데이터 값)와 SVA(프로토콜 파형)가 상보적 감시망을 이룬다
 
 ## 필요 환경
 
@@ -343,6 +346,7 @@ cd .\260329_uart\m2_uart_tx_verif\m01_seed_param\sim
 - `260329_uart/m2_uart_tx_verif/m02_rand_constraint/stage_flow_demo.html`
 - `260329_uart/m2_uart_tx_verif/m03_corner/stage_flow_demo.html`
 - `260329_uart/m2_uart_tx_verif/m04_mid_reset/stage_flow_demo.html`
+- `260329_uart/m2_uart_tx_verif/m05_sva/stage_flow_demo.html`
 
 각 데모는 외부 웹 폰트 없이 로컬 시스템 글꼴만 사용합니다.
 

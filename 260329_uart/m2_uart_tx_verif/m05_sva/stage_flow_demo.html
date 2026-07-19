@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m2/m05_sva Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m2/m05_sva",
+  headline: "프로토콜 파형을 SVA로 상시 감시한다. scoreboard와 상보적인 감시망이다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m2/m04_mid_reset 대비: uart_tx_if가 프레임 타이밍 속성 4개를 SVA로 상시 감시하고, monitor의 framing 검사가 error로 승격된다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
+    { label: "← m04", href: "../m04_mid_reset/stage_flow_demo.html" }
+  ],
+  focus: [
+    "idle serial high, start bit 폭, ready 프레임 타이밍, stop bit 폭 — 4개 속성이 모든 case에서 상시 검사된다.",
+    "scoreboard는 데이터 값을, SVA는 프로토콜 파형을 검사한다. 같은 자극에서 서로 다른 종류의 버그를 잡는다.",
+    "전송 중 리셋은 disable iff (!i_Rsn)로 무효화되고, 실행 스크립트는 SVA 활성 marker와 assertion 실패 0을 검사한다."
+  ],
+  nodes: [
+    { id: "driver", title: "uvm_driver", text: "모든 case의 자극", x: 3, y: 15, w: 17, h: 13, tone: "amber" },
+    { id: "dut", title: "DUT", text: "UART TX 프레임 생성", x: 23, y: 15, w: 18, h: 13, tone: "slate" },
+    { id: "interface", title: "uart_tx_if + SVA", text: "프로토콜 속성 상시 감시", x: 44, y: 15, w: 17, h: 13, tone: "rose" },
+    { id: "start", title: "start bit 폭", text: "정확히 1 bit 시간", x: 64, y: 15, w: 15, h: 13, tone: "blue" },
+    { id: "stop", title: "stop bit 폭", text: "마지막 1 bit 시간", x: 82, y: 15, w: 15, h: 13, tone: "blue" },
+    { id: "monitor", title: "uvm_monitor", text: "framing error 승격", x: 78, y: 59, w: 18, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uvm_scoreboard", text: "데이터 값 비교", x: 51, y: 59, w: 21, h: 13, tone: "green" },
+    { id: "script", title: "실행 스크립트", text: "SVA 활성·실패 0 검사", x: 23, y: 55, w: 20, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "dut_interface", from: "dut", to: "interface" },
+    { id: "interface_start", from: "interface", to: "start" },
+    { id: "interface_stop", from: "interface", to: "stop" },
+    { id: "interface_monitor", from: "interface", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "scoreboard_script", from: "scoreboard", to: "script" },
+    { id: "interface_script", from: "interface", to: "script" }
+  ],
+  steps: [
+    {
+      title: "interface의 SVA 선언",
+      body: "uart_tx_if가 CLK_FREQ/BAUD_RATE 파라미터에서 CLKS_PER_BIT를 계산하고 property 4개를 선언한다. 전송 수락 시점이 모든 프레임 속성의 기준점이다.",
+      activeNodes: ["interface"],
+      activeWires: [],
+      code: "property p_start_bit_width;\n    @(posedge i_Clk) disable iff (!i_Rsn)\n    (r_TxValid && w_TxReady) |=> ##1 ((!w_TxSerial) [* CLKS_PER_BIT]);\nendproperty",
+      packetWire: null,
+      packet: ""
+    },
+    {
+      title: "프레임 타이밍 검사",
+      body: "start bit 폭, ready의 정확한 10 bit 시간 유지, stop bit 폭이 매 프레임 자동 검사된다. smoke부터 reset까지 모든 case의 자극이 SVA를 통과해야 한다.",
+      activeNodes: ["driver", "dut", "interface", "start", "stop"],
+      activeWires: ["driver_dut", "dut_interface", "interface_start", "interface_stop"],
+      code: "(r_TxValid && w_TxReady) |=>\n    ((!w_TxReady) [* (10 * CLKS_PER_BIT)]) ##1 w_TxReady;",
+      packetWire: "dut_interface",
+      packet: "frame"
+    },
+    {
+      title: "monitor 검사의 승격",
+      body: "stop bit 위반이 SVA와 monitor 양쪽에서 잡히도록 monitor의 framing 검사를 warning에서 uvm_error로 승격한다. 변이 테스트에서 두 감시망이 함께 발화함을 확인했다.",
+      activeNodes: ["monitor", "scoreboard"],
+      activeWires: ["interface_monitor", "monitor_scoreboard"],
+      code: "if (vif.w_TxSerial !== 1'b1)\n    `uvm_error(\"MON\", \"framing error: stop bit not high\")",
+      packetWire: "interface_monitor",
+      packet: "err!"
+    },
+    {
+      title: "스크립트의 SVA 검사",
+      body: "실행 스크립트가 SVA 활성 marker(props=4)의 존재와 assertion 실패 메시지 0건을 검사한다. 리셋 case에서는 disable iff가 in-flight 속성을 안전하게 무효화한다.",
+      activeNodes: ["interface", "script"],
+      activeWires: ["interface_script", "scoreboard_script"],
+      code: "if ($LogText -match '(?im)SVA a_') {\n    throw \"SVA assertion failure found\"\n}",
+      packetWire: "interface_script",
+      packet: "0 fail"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_if.sv / sim/run_xsim.ps1",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
