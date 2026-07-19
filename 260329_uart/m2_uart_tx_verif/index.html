@@ -194,7 +194,7 @@ footer a {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>m01 seed·개수 파라미터화</span><b>→</b><span>m02 rand·constraint</span><b>→</b><span>m03 corner sequence</span><b>→</b><span class="todo">m04 전송 중 리셋</span><b>→</b><span class="todo">m05 프로토콜 SVA</span><b>→</b><span class="todo">m06 functional coverage</span><b>→</b><span class="todo">m07 multi-seed 회귀 (선택)</span>
+      <span>m01 seed·개수 파라미터화</span><b>→</b><span>m02 rand·constraint</span><b>→</b><span>m03 corner sequence</span><b>→</b><span>m04 전송 중 리셋</span><b>→</b><span class="todo">m05 프로토콜 SVA</span><b>→</b><span class="todo">m06 functional coverage</span><b>→</b><span class="todo">m07 multi-seed 회귀 (선택)</span>
     </div>
 
     <div class="grid">
@@ -242,6 +242,18 @@ footer a {
           <span>idle_gap=0 강제와 즉시 재요청</span>
           <span>전송 중 valid 주입과 무시 검증</span>
           <span>RTL 헤더 핸드셰이크 규약 절 확정</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--rose)" href="m04_mid_reset/stage_flow_demo.html">
+        <span class="badge">m04</span>
+        <h2>m04_mid_reset</h2>
+        <p>프레임 중간에 리셋을 주입해 잘린 byte의 유실과 이후 복구 경로를 검증합니다.</p>
+        <div class="points">
+          <span>test의 vif 기반 리셋 주입</span>
+          <span>monitor abort와 재동기화</span>
+          <span>scoreboard on_reset 목표 조정</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>

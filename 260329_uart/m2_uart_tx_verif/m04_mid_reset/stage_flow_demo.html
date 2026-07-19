@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m2/m04_mid_reset Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m2/m04_mid_reset",
+  headline: "전송 중 리셋을 주입하고 잘린 byte 이후의 복구 경로를 검증한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m2/m03_corner 대비: reset case가 추가된다. test가 프레임 중간에 리셋을 주입하면 잘린 byte는 유실이 정상이고, 이후 byte들이 깨끗하게 복구되는지가 검증 대상이다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
+    { label: "← m03", href: "../m03_corner/stage_flow_demo.html" }
+  ],
+  focus: [
+    "test가 vif.r_RsnDrive로 리셋을 주입하고 TB_Top이 power-on reset과 AND해 i_Rsn을 만든다.",
+    "monitor는 fork/join_any로 capture와 리셋 감시를 경쟁시켜 잘린 프레임을 버리고 재동기화한다.",
+    "scoreboard는 on_reset()으로 in-flight expected를 목표에서 제외하고, 스크립트는 관측 경로가 자극 경로보다 정확히 1 짧음을 검사한다."
+  ],
+  nodes: [
+    { id: "test", title: "uvm_test", text: "프레임 중간 리셋 주입", x: 3, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "reset", title: "r_RsnDrive / i_Rsn", text: "POR과 AND된 리셋", x: 23, y: 15, w: 18, h: 13, tone: "rose" },
+    { id: "driver", title: "uvm_driver", text: "해제+ready 대기 구동", x: 44, y: 15, w: 17, h: 13, tone: "amber" },
+    { id: "dut", title: "DUT / vif", text: "프레임 중단·IDLE 복귀", x: 64, y: 15, w: 15, h: 13, tone: "slate" },
+    { id: "serial", title: "o_TxSerial", text: "잘린 프레임·idle 복귀", x: 82, y: 15, w: 15, h: 13, tone: "blue" },
+    { id: "monitor", title: "uvm_monitor", text: "capture abort·재동기화", x: 78, y: 59, w: 18, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uvm_scoreboard", text: "on_reset 목표 조정", x: 51, y: 59, w: 21, h: 13, tone: "green" },
+    { id: "invariant", title: "불변식 검사", text: "관측 = 자극 - 1", x: 23, y: 55, w: 20, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "test_reset", from: "test", to: "reset" },
+    { id: "reset_driver", from: "reset", to: "driver" },
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "dut_serial", from: "dut", to: "serial" },
+    { id: "serial_monitor", from: "serial", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "test_scoreboard", from: "test", to: "scoreboard" },
+    { id: "scoreboard_invariant", from: "scoreboard", to: "invariant" }
+  ],
+  steps: [
+    {
+      title: "프레임 중간 리셋 주입",
+      body: "test가 두 번째 프레임의 시작을 기다렸다가 프레임 내부의 임의 시점에 vif.r_RsnDrive를 내린다. TB_Top이 이를 power-on reset과 AND해 i_Rsn을 만든다.",
+      activeNodes: ["test", "reset"],
+      activeWires: ["test_reset"],
+      code: "repeat (2) @(negedge vif.w_TxReady);\nrepeat ($urandom_range(CLKS_PER_BIT, 8 * CLKS_PER_BIT)) @(posedge vif.i_Clk);\nvif.r_RsnDrive = 1'b0;",
+      packetWire: "test_reset",
+      packet: "rst!"
+    },
+    {
+      title: "monitor의 capture abort",
+      body: "monitor는 capture와 리셋 감시를 fork/join_any로 경쟁시킨다. 리셋이 이기면 잘린 프레임을 publish하지 않고 리셋 해제 후 재동기화한다.",
+      activeNodes: ["serial", "monitor"],
+      activeWires: ["serial_monitor"],
+      code: "fork\n    begin : capture_frame ... end\n    begin : watch_reset @(negedge vif.i_Rsn); end\njoin_any\ndisable fork;",
+      packetWire: "serial_monitor",
+      packet: "abort"
+    },
+    {
+      title: "scoreboard의 목표 조정",
+      body: "리셋으로 잘린 byte의 expected는 actual이 오지 않는다. on_reset()이 in-flight expected를 비우고 목표 개수에서 제외해 계획된 유실을 정확히 모델링한다.",
+      activeNodes: ["test", "scoreboard"],
+      activeWires: ["test_scoreboard"],
+      code: "function void on_reset();\n    dropped = expected_q.size();\n    expected_q.delete();\n    target_cnt -= dropped;\nendfunction",
+      packetWire: "test_scoreboard",
+      packet: "drop=1"
+    },
+    {
+      title: "복구와 불변식 검사",
+      body: "driver는 리셋 해제와 ready를 함께 기다린 뒤 다음 byte를 구동하고, 이후 byte들은 모두 PASS해야 한다. 스크립트는 자극 경로 일치, 관측 경로 일치와 '관측 = 자극 - 1'을 검사한다.",
+      activeNodes: ["driver", "dut", "scoreboard", "invariant"],
+      activeWires: ["reset_driver", "driver_dut", "scoreboard_invariant"],
+      code: "do @(posedge vif.i_Clk);\nwhile (!(vif.w_TxReady === 1'b1 && vif.i_Rsn === 1'b1));",
+      packetWire: "scoreboard_invariant",
+      packet: "N-1"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_monitor.sv / tb/test/uart_tx_test.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
