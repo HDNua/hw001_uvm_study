@@ -26,6 +26,13 @@ $Results = @()
 foreach ($Seed in $Seeds) {
     $Ok     = $true
     $Detail = ""
+    $SeedLog = Join-Path $RegressDir "sim_seed_$Seed.log"
+    foreach ($OldLog in @($SimLog, $SeedLog)) {
+        if (Test-Path -LiteralPath $OldLog) {
+            Remove-Item -LiteralPath $OldLog -Force
+        }
+    }
+
     try {
         & $RunScript -VivadoBin $VivadoBin -Seed $Seed -NumBytes $NumBytes -CovMin $CovMin -DataCovMin $DataCovMin | Out-Null
     } catch {
@@ -33,25 +40,40 @@ foreach ($Seed in $Seeds) {
         $Detail = $_.Exception.Message
     }
 
-    $Coverage = 0.0
+    $Coverage     = 0.0
+    $DataCoverage = 0.0
     if (Test-Path -LiteralPath $SimLog) {
-        $CovMatch = [regex]::Match((Get-Content -LiteralPath $SimLog -Raw), 'UART_TX_VERIF_COVERAGE .*total=([\d\.]+)%')
+        $LogText  = Get-Content -LiteralPath $SimLog -Raw
+        $CovMatch = [regex]::Match($LogText, 'UART_TX_VERIF_COVERAGE .*total=([\d\.]+)%')
         if ($CovMatch.Success) {
             $Coverage = [double] $CovMatch.Groups[1].Value
         }
-        Copy-Item -LiteralPath $SimLog -Destination (Join-Path $RegressDir "sim_seed_$Seed.log") -Force
+        $DataCovMatch = [regex]::Match($LogText, 'UART_TX_VERIF_COVERAGE data=([\d\.]+)%')
+        if ($DataCovMatch.Success) {
+            $DataCoverage = [double] $DataCovMatch.Groups[1].Value
+        }
+        Copy-Item -LiteralPath $SimLog -Destination $SeedLog -Force
     }
 
-    $Results += [pscustomobject]@{ Seed = $Seed; Pass = $Ok; Coverage = $Coverage; Detail = $Detail }
-    Write-Host ("seed={0,-10} pass={1,-5} coverage={2}%" -f $Seed, $Ok, $Coverage)
+    $Results += [pscustomobject]@{
+        Seed = $Seed
+        Pass = $Ok
+        Coverage = $Coverage
+        DataCoverage = $DataCoverage
+        Detail = $Detail
+    }
+    Write-Host ("seed={0,-10} pass={1,-5} coverage={2}% data={3}%" -f $Seed, $Ok, $Coverage, $DataCoverage)
 }
 
-$FailCount  = @($Results | Where-Object { -not $_.Pass }).Count
-$CovValues  = $Results | ForEach-Object { $_.Coverage }
-$CovMinSeen = ($CovValues | Measure-Object -Minimum).Minimum
-$CovMaxSeen = ($CovValues | Measure-Object -Maximum).Maximum
+$FailCount      = @($Results | Where-Object { -not $_.Pass }).Count
+$CovValues      = $Results | ForEach-Object { $_.Coverage }
+$CovMinSeen     = ($CovValues | Measure-Object -Minimum).Minimum
+$CovMaxSeen     = ($CovValues | Measure-Object -Maximum).Maximum
+$DataCovValues  = $Results | ForEach-Object { $_.DataCoverage }
+$DataCovMinSeen = ($DataCovValues | Measure-Object -Minimum).Minimum
+$DataCovMaxSeen = ($DataCovValues | Measure-Object -Maximum).Maximum
 
-Write-Host "REGRESSION: runs=$($Results.Count) fail=$FailCount cov_min=$CovMinSeen% cov_max=$CovMaxSeen%"
+Write-Host "REGRESSION: runs=$($Results.Count) fail=$FailCount cov_min=$CovMinSeen% cov_max=$CovMaxSeen% data_min=$DataCovMinSeen% data_max=$DataCovMaxSeen%"
 
 if ($FailCount -ne 0) {
     $Results | Where-Object { -not $_.Pass } | ForEach-Object {

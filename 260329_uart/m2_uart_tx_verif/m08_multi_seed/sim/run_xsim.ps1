@@ -38,7 +38,7 @@ $ExpectedDropCount = 1
 
 function Check-Exit {
     if ($LASTEXITCODE -ne 0) {
-        exit $LASTEXITCODE
+        throw "Native simulation command failed with exit code $LASTEXITCODE"
     }
 }
 

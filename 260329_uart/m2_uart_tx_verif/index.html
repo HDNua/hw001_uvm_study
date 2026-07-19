@@ -194,7 +194,7 @@ footer a {
 
   <main>
     <div class="flow" aria-label="현재 학습 순서">
-      <span>m01 seed·개수 파라미터화</span><b>→</b><span>m02 rand·constraint</span><b>→</b><span>m03 corner sequence</span><b>→</b><span>m04 전송 중 리셋</span><b>→</b><span>m05 프로토콜 SVA</span><b>→</b><span>m06 functional coverage</span><b>→</b><span>m07 자극 버그 추적</span><b>→</b><span class="todo">m08 multi-seed 회귀 (선택)</span>
+      <span>m01 seed·개수 파라미터화</span><b>→</b><span>m02 rand·constraint</span><b>→</b><span>m03 corner sequence</span><b>→</b><span>m04 전송 중 리셋</span><b>→</b><span>m05 프로토콜 SVA</span><b>→</b><span>m06 functional coverage</span><b>→</b><span>m07 자극 버그 추적</span><b>→</b><span>m08 multi-seed 회귀</span>
     </div>
 
     <div class="grid">
@@ -290,6 +290,18 @@ footer a {
           <span>단서 추적: 55/aa bins 0 hit</span>
           <span>randomize 의미론과 scoreboard의 침묵</span>
           <span>smoke 검사와 -DataCovMin 하한 상설화</span>
+        </div>
+        <span class="open">단계 흐름 보기 →</span>
+      </a>
+
+      <a class="card" style="--tone: var(--green)" href="m08_multi_seed/stage_flow_demo.html">
+        <span class="badge">m08</span>
+        <h2>m08_multi_seed</h2>
+        <p>같은 검증을 여러 seed로 반복 실행해 한 seed의 운으로 통과하는 자극 구멍을 줄입니다.</p>
+        <div class="points">
+          <span>seed 목록 반복과 결과 집계</span>
+          <span>seed별 로그 보존과 실패 처리</span>
+          <span>실패 seed의 한 줄 재현</span>
         </div>
         <span class="open">단계 흐름 보기 →</span>
       </a>

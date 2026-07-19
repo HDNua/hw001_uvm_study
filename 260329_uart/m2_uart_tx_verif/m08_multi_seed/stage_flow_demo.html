@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>m2/m07_multi_seed Flow Demo</title>
+<title>m2/m08_multi_seed Flow Demo</title>
 <link rel="stylesheet" href="../stage_flow.css" />
 </head>
 <body>
@@ -62,14 +62,14 @@
 
 <script>
 window.STAGE = {
-  title: "m2/m07_multi_seed",
+  title: "m2/m08_multi_seed",
   headline: "같은 검증을 여러 seed로 반복해 한 seed의 운을 걷어낸다.",
   focusLabel: "이전 단계 대비",
-  focusSummary: "m2/m06_coverage 대비: 테스트벤치는 그대로 두고 run_regression.ps1이 추가된다. seed 목록을 반복 실행하고 seed별 PASS와 coverage를 집계한다.",
+  focusSummary: "m2/m07_stim_debug 대비: 테스트벤치는 그대로 두고 run_regression.ps1이 추가된다. seed 목록을 반복 실행하고 seed별 PASS와 total/data coverage를 집계한다.",
   navLinks: [
     { label: "목차", href: "../index.html" },
     { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
-    { label: "← m06", href: "../m06_coverage/stage_flow_demo.html" }
+    { label: "← m07", href: "../m07_stim_debug/stage_flow_demo.html" }
   ],
   focus: [
     "고정 seed 하나로 통과하는 것은 그 seed의 자극에 대한 통과일 뿐이다. 회귀는 그 운을 줄인다.",
@@ -102,25 +102,25 @@ window.STAGE = {
       body: "회귀 스크립트가 seed 목록을 돌며 단일 실행 스크립트를 그대로 호출한다. 단일 실행의 모든 검사(불변식, SVA, coverage 목표)가 seed마다 적용된다.",
       activeNodes: ["regress", "seeds", "runner", "tb"],
       activeWires: ["regress_seeds", "seeds_runner", "runner_tb"],
-      code: "foreach ($Seed in $Seeds) {\n    & $RunScript -Seed $Seed -NumBytes $NumBytes -CovMin $CovMin\n}",
+      code: "foreach ($Seed in $Seeds) {\n    & $RunScript -Seed $Seed -NumBytes $NumBytes `\n        -CovMin $CovMin -DataCovMin $DataCovMin\n}",
       packetWire: "seeds_runner",
       packet: "seed"
     },
     {
       title: "seed별 결과 수집과 로그 보존",
-      body: "각 실행의 PASS 여부와 coverage를 수집하고 로그를 out/regress/sim_seed_N.log로 복사한다. 실패해도 멈추지 않고 전체를 다 돈 뒤 집계한다.",
+      body: "각 실행의 PASS 여부와 total/data coverage를 수집하고 새 로그만 out/regress/sim_seed_N.log로 복사한다. 한 seed의 검사가 실패해도 다음 seed를 실행하고 전체를 돈 뒤 집계한다.",
       activeNodes: ["tb", "logs", "collect"],
       activeWires: ["tb_logs", "logs_collect"],
-      code: "Copy-Item $SimLog (Join-Path $RegressDir \"sim_seed_$Seed.log\")\n$Results += [pscustomobject]@{ Seed=$Seed; Pass=$Ok; Coverage=$Coverage }",
+      code: "Copy-Item $SimLog (Join-Path $RegressDir \"sim_seed_$Seed.log\")\n$Results += [pscustomobject]@{\n    Seed=$Seed; Pass=$Ok; Coverage=$Coverage; DataCoverage=$DataCoverage\n}",
       packetWire: "logs_collect",
       packet: "log"
     },
     {
       title: "집계와 실패 처리",
-      body: "실행 수, 실패 수, coverage 최소/최대를 요약한다. 실패 seed가 하나라도 있으면 어떤 seed가 왜 실패했는지 출력하고 회귀 전체를 실패시킨다.",
+      body: "실행 수, 실패 수, total/data coverage 최소·최대를 요약한다. 실패 seed가 하나라도 있으면 어떤 seed가 왜 실패했는지 출력하고 회귀 전체를 실패시킨다.",
       activeNodes: ["collect", "summary"],
       activeWires: ["collect_summary"],
-      code: "REGRESSION: runs=5 fail=0 cov_min=88.4% cov_max=92%\nif ($FailCount -ne 0) { throw \"Regression failed\" }",
+      code: "REGRESSION: runs=5 fail=0 cov_min=88.4% cov_max=92% `\n            data_min=100% data_max=100%\nif ($FailCount -ne 0) { throw \"Regression failed\" }",
       packetWire: "collect_summary",
       packet: "5/5"
     },
