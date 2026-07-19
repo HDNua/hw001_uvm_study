@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m2/m07_multi_seed Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m2/m07_multi_seed",
+  headline: "같은 검증을 여러 seed로 반복해 한 seed의 운을 걷어낸다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m2/m06_coverage 대비: 테스트벤치는 그대로 두고 run_regression.ps1이 추가된다. seed 목록을 반복 실행하고 seed별 PASS와 coverage를 집계한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
+    { label: "← m06", href: "../m06_coverage/stage_flow_demo.html" }
+  ],
+  focus: [
+    "고정 seed 하나로 통과하는 것은 그 seed의 자극에 대한 통과일 뿐이다. 회귀는 그 운을 줄인다.",
+    "seed별 로그가 out/regress/에 보존되고, 실패 seed가 하나라도 있으면 회귀 전체가 실패한다.",
+    "seed 재현성(m01) 덕분에 실패 seed는 같은 명령 한 줄로 즉시 재현·디버그된다."
+  ],
+  nodes: [
+    { id: "regress", title: "run_regression.ps1", text: "seed 목록 반복 실행", x: 3, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "seeds", title: "seeds", text: "1, 7, 42, 1234, ...", x: 23, y: 15, w: 18, h: 13, tone: "amber" },
+    { id: "runner", title: "run_xsim.ps1", text: "단일 seed 검증 실행", x: 44, y: 15, w: 17, h: 13, tone: "blue" },
+    { id: "tb", title: "UVM TB", text: "5 case + SVA + coverage", x: 64, y: 15, w: 15, h: 13, tone: "slate" },
+    { id: "logs", title: "out/regress/", text: "seed별 로그 보존", x: 82, y: 15, w: 15, h: 13, tone: "green" },
+    { id: "collect", title: "결과 수집", text: "PASS·coverage per seed", x: 78, y: 59, w: 18, h: 13, tone: "green" },
+    { id: "summary", title: "집계", text: "fail 수·cov min/max", x: 51, y: 59, w: 21, h: 13, tone: "teal" },
+    { id: "repro", title: "재현 루프", text: "실패 seed 단일 재실행", x: 23, y: 55, w: 20, h: 13, tone: "rose" }
+  ],
+  wires: [
+    { id: "regress_seeds", from: "regress", to: "seeds" },
+    { id: "seeds_runner", from: "seeds", to: "runner" },
+    { id: "runner_tb", from: "runner", to: "tb" },
+    { id: "tb_logs", from: "tb", to: "logs" },
+    { id: "logs_collect", from: "logs", to: "collect" },
+    { id: "collect_summary", from: "collect", to: "summary" },
+    { id: "summary_repro", from: "summary", to: "repro" },
+    { id: "repro_runner", from: "repro", to: "runner" }
+  ],
+  steps: [
+    {
+      title: "seed 목록 반복 실행",
+      body: "회귀 스크립트가 seed 목록을 돌며 단일 실행 스크립트를 그대로 호출한다. 단일 실행의 모든 검사(불변식, SVA, coverage 목표)가 seed마다 적용된다.",
+      activeNodes: ["regress", "seeds", "runner", "tb"],
+      activeWires: ["regress_seeds", "seeds_runner", "runner_tb"],
+      code: "foreach ($Seed in $Seeds) {\n    & $RunScript -Seed $Seed -NumBytes $NumBytes -CovMin $CovMin\n}",
+      packetWire: "seeds_runner",
+      packet: "seed"
+    },
+    {
+      title: "seed별 결과 수집과 로그 보존",
+      body: "각 실행의 PASS 여부와 coverage를 수집하고 로그를 out/regress/sim_seed_N.log로 복사한다. 실패해도 멈추지 않고 전체를 다 돈 뒤 집계한다.",
+      activeNodes: ["tb", "logs", "collect"],
+      activeWires: ["tb_logs", "logs_collect"],
+      code: "Copy-Item $SimLog (Join-Path $RegressDir \"sim_seed_$Seed.log\")\n$Results += [pscustomobject]@{ Seed=$Seed; Pass=$Ok; Coverage=$Coverage }",
+      packetWire: "logs_collect",
+      packet: "log"
+    },
+    {
+      title: "집계와 실패 처리",
+      body: "실행 수, 실패 수, coverage 최소/최대를 요약한다. 실패 seed가 하나라도 있으면 어떤 seed가 왜 실패했는지 출력하고 회귀 전체를 실패시킨다.",
+      activeNodes: ["collect", "summary"],
+      activeWires: ["collect_summary"],
+      code: "REGRESSION: runs=5 fail=0 cov_min=88.4% cov_max=92%\nif ($FailCount -ne 0) { throw \"Regression failed\" }",
+      packetWire: "collect_summary",
+      packet: "5/5"
+    },
+    {
+      title: "재현성 기반 디버그 루프",
+      body: "m01의 seed 재현성 덕분에 실패 seed는 run_xsim.ps1 -Seed N 한 줄로 같은 자극이 재현된다. 회귀에서 잡고, 단일 실행에서 디버그하는 루프가 완성된다.",
+      activeNodes: ["summary", "repro", "runner"],
+      activeWires: ["summary_repro", "repro_runner"],
+      code: ".\\run_xsim.ps1 -Seed 1234 -NumBytes 8\n# 회귀에서 실패한 자극을 그대로 재현",
+      packetWire: "repro_runner",
+      packet: "again"
+    }
+  ],
+  snippet: "sim/run_regression.ps1 / sim/run_xsim.ps1",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
