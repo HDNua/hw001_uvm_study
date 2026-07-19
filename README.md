@@ -261,12 +261,15 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 │   │   └── uart_tx/
 │   │       └── (m1/m15와 같은 역할 구성)
 │   └── stage_flow_demo.html
-└── m02_rand_constraint/
+├── m02_rand_constraint/
+│   └── (m01과 같은 단계 구성)
+└── m03_corner/
     └── (m01과 같은 단계 구성)
 ```
 
 - `m01_seed_param`: seed와 자극 byte 수를 `+SEED`, `+NUM_BYTES` plusarg로 받아 랜덤 재현성을 확보하고, 실행 스크립트를 고정 건수 일치 대신 경로 불변식 검사로 전환한 단계
 - `m02_rand_constraint`: sequence item에 `rand` data·idle_gap과 constraint(dist 가중치, 간격 범위)를 도입하고, random case를 test의 `$urandom_range` 대신 `item.randomize()`로 생성하며 driver가 랜덤 간격으로 구동하는 단계
+- `m03_corner`: back-to-back(idle_gap=0)과 전송 중 valid 주입 corner case를 추가해 "busy 중 valid는 조용히 무시·유실된다"는 핸드셰이크 규약을 자극과 체킹으로 확정하고 RTL 헤더에 규약 절을 기록한 단계
 
 ## 필요 환경
 
@@ -302,7 +305,7 @@ cd .\260329_uart\m2_uart_tx_verif\m01_seed_param\sim
 .\run_xsim.ps1 -Seed 7 -NumBytes 8
 ```
 
-같은 seed는 같은 random payload를 재현합니다. m2 실행 스크립트는 고정 건수 일치 대신 sequence, driver, monitor와 scoreboard PASS 건수의 일치, case별 `fail=0`과 config echo를 검사하고 성공 시 `PASS: seed=... num_bytes=... items=... cases=3`을 출력합니다.
+같은 seed는 같은 random payload를 재현합니다. m2 실행 스크립트는 고정 건수 일치 대신 sequence, driver, monitor와 scoreboard PASS 건수의 일치, case별 `fail=0`과 config echo를 검사하고 성공 시 `PASS: seed=... num_bytes=... items=... cases=...`를 출력합니다. case 수는 단계에 따라 다릅니다(m01·m02는 3개, m03부터 corner를 더해 4개).
 
 파형을 GUI에서 열려면 시뮬레이션 완료 후 다음 명령을 실행합니다.
 
@@ -335,6 +338,7 @@ cd .\260329_uart\m2_uart_tx_verif\m01_seed_param\sim
 - `260329_uart/m2_uart_tx_verif/index.html`
 - `260329_uart/m2_uart_tx_verif/m01_seed_param/stage_flow_demo.html`
 - `260329_uart/m2_uart_tx_verif/m02_rand_constraint/stage_flow_demo.html`
+- `260329_uart/m2_uart_tx_verif/m03_corner/stage_flow_demo.html`
 
 각 데모는 외부 웹 폰트 없이 로컬 시스템 글꼴만 사용합니다.
 

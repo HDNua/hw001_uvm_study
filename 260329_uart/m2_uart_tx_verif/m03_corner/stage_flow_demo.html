@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m2/m03_corner Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m2/m03_corner",
+  headline: "핸드셰이크 경계를 corner case로 확정한다: back-to-back과 busy 중 valid.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m2/m02_rand_constraint 대비: corner case가 추가되어 idle_gap=0을 강제하고, 매 byte 전송 중(o_TxReady=0)에 valid를 다시 주입한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
+    { label: "← m02", href: "../m02_rand_constraint/stage_flow_demo.html" }
+  ],
+  focus: [
+    "corner case는 randomize() with { idle_gap == 0; }으로 back-to-back 전송을 강제한다.",
+    "driver가 전송 중에 busy_data로 valid를 주입하며, 이 데이터는 expected에 실리지 않는다.",
+    "DUT가 주입을 무시하지 않으면 scoreboard 비교가 즉시 실패한다. 이 단계에서 RTL 헤더의 핸드셰이크 규약 절이 확정됐다."
+  ],
+  nodes: [
+    { id: "test", title: "uvm_test", text: "4개 case 실행", x: 3, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "sequence", title: "uvm_sequence", text: "corner mode 강제", x: 23, y: 15, w: 18, h: 13, tone: "amber" },
+    { id: "item", title: "uart_tx_seq_item", text: "idle_gap=0·busy_data", x: 44, y: 15, w: 17, h: 13, tone: "blue" },
+    { id: "driver", title: "uvm_driver", text: "busy 중 valid 주입", x: 64, y: 15, w: 15, h: 13, tone: "rose" },
+    { id: "dut", title: "DUT / vif", text: "주입 무시 의무", x: 82, y: 15, w: 15, h: 13, tone: "slate" },
+    { id: "monitor", title: "uvm_monitor", text: "actual publish", x: 78, y: 59, w: 18, h: 13, tone: "green" },
+    { id: "scoreboard", title: "uvm_scoreboard", text: "추가 actual 검출", x: 51, y: 59, w: 21, h: 13, tone: "green" },
+    { id: "spec", title: "핸드셰이크 규약", text: "busy 중 valid 무시·유실", x: 23, y: 55, w: 20, h: 13, tone: "teal" }
+  ],
+  wires: [
+    { id: "test_sequence", from: "test", to: "sequence" },
+    { id: "sequence_item", from: "sequence", to: "item" },
+    { id: "item_driver", from: "item", to: "driver" },
+    { id: "driver_dut", from: "driver", to: "dut" },
+    { id: "dut_monitor", from: "dut", to: "monitor" },
+    { id: "monitor_scoreboard", from: "monitor", to: "scoreboard" },
+    { id: "sequence_scoreboard", from: "sequence", to: "scoreboard" },
+    { id: "scoreboard_spec", from: "scoreboard", to: "spec" }
+  ],
+  steps: [
+    {
+      title: "corner mode 강제",
+      body: "test가 set_corner_payload()를 호출하면 sequence는 idle_gap=0 조건으로 randomize하고 매 item에 busy 주입 플래그를 켠다.",
+      activeNodes: ["test", "sequence", "item"],
+      activeWires: ["test_sequence", "sequence_item"],
+      code: "if (!req_item.randomize() with { idle_gap == 0; })\n    `uvm_fatal(\"RANDFAIL\", \"corner randomize failed\")\nreq_item.inject_busy_valid = 1'b1;",
+      packetWire: "sequence_item",
+      packet: "corner"
+    },
+    {
+      title: "back-to-back 구동",
+      body: "gap 없이 ready 복귀를 기다렸다가 즉시 다음 byte를 구동한다. ready가 돌아오는 순간 새 요청이 접수되는지 확인한다.",
+      activeNodes: ["driver", "dut"],
+      activeWires: ["item_driver", "driver_dut"],
+      code: "repeat (item.idle_gap) @(posedge vif.i_Clk);   // corner: 0\ndo @(posedge vif.i_Clk); while (!vif.w_TxReady);",
+      packetWire: "driver_dut",
+      packet: "b2b"
+    },
+    {
+      title: "busy 중 valid 주입",
+      body: "프레임이 시작되어 o_TxReady=0이 된 뒤 driver가 busy_data로 valid를 다시 올린다. DUT의 FSM은 IDLE에서만 valid를 샘플링하므로 이 요청은 무시되어야 한다.",
+      activeNodes: ["driver", "dut"],
+      activeWires: ["driver_dut"],
+      code: "wait (vif.w_TxReady === 1'b0);\n@(posedge vif.i_Clk);\nvif.r_TxData  <= busy_data;\nvif.r_TxValid <= 1'b1;",
+      packetWire: "driver_dut",
+      packet: "busy!"
+    },
+    {
+      title: "무시 확정과 규약 문서화",
+      body: "주입 데이터는 expected에 없으므로, DUT가 무시하지 않으면 scoreboard 비교나 경로 불변식이 즉시 실패한다. 변이 테스트로 검출력을 확인했고 RTL 헤더에 핸드셰이크 규약 절을 확정했다.",
+      activeNodes: ["monitor", "scoreboard", "spec"],
+      activeWires: ["dut_monitor", "monitor_scoreboard", "scoreboard_spec"],
+      code: "// m00_rtl/UART_Tx.sv 헤더\n// - o_TxReady=0 (전송 중)일 때의 i_TxValid는 조용히 무시된다.\n//   내부 큐잉과 에러 신호는 없으며 해당 i_TxData는 유실된다.",
+      packetWire: "scoreboard_spec",
+      packet: "spec"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_driver.sv / m00_rtl/UART_Tx.sv",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>
