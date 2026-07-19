@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>m2/m07_stim_debug Flow Demo</title>
+<link rel="stylesheet" href="../stage_flow.css" />
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 id="stageTitle"></h1>
+      <p class="headline" id="stageHeadline"></p>
+    </div>
+    <div class="top-actions" id="topActions"></div>
+  </header>
+
+  <div class="layout">
+    <aside class="panel side">
+      <h2>Focus</h2>
+      <div class="focus-card">
+        <strong id="focusLabel"></strong>
+        <p id="focusSummary"></p>
+      </div>
+      <div class="focus-list section-gap" id="focusList"></div>
+
+      <div class="section-gap">
+        <h2>Flow Step</h2>
+        <div class="step-list" id="stepList"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="panel board-shell">
+        <div class="board-scroll">
+          <div class="board" id="board">
+            <div class="lane-label">STIMULUS / STRUCTURE</div>
+            <div class="lane-label check">OBSERVE / CHECK</div>
+            <svg class="wire-layer" id="wireLayer" aria-hidden="true"></svg>
+            <div id="nodes"></div>
+            <div class="packet" id="packet"></div>
+            <div class="payload-row" id="payloadRow"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="below">
+        <div class="detail-card">
+          <strong id="detailTitle"></strong>
+          <p id="detailBody"></p>
+        </div>
+        <div class="detail-card">
+          <strong>Code Focus</strong>
+          <p>관련 파일: <span id="snippetName"></span></p>
+          <pre id="codeBlock"></pre>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+window.STAGE = {
+  title: "m2/m07_stim_debug",
+  headline: "coverage가 남긴 71.4% 단서를 추적해 m02부터 잠복한 자극 버그를 수정한다.",
+  focusLabel: "이전 단계 대비",
+  focusSummary: "m2/m06_coverage 대비: 측정이 남긴 단서를 로그 대조로 추적해 자극 버그를 찾아 고치고, 같은 계열의 훼손이 자동으로 잡히도록 검사를 상설화한다.",
+  navLinks: [
+    { label: "목차", href: "../index.html" },
+    { label: "UART TX 동작 데모", href: "../../m1_uart_tx/uart_tx_demo.html" },
+    { label: "← m06", href: "../m06_coverage/stage_flow_demo.html" }
+  ],
+  focus: [
+    "단서: data coverage 71.4% 고정, pattern의 55/aa bins 0 hit. 로그를 대조하면 smoke가 0x48이 아닌 랜덤 값을 구동하고 있다.",
+    "원인: XSim의 인자 목록 randomize(idle_gap)가 rand 필드 전체를 다시 뽑아 고정 payload를 덮는다. m02부터 잠복한 버그다. expected가 randomize 이후 값을 복사하므로 scoreboard는 침묵했다.",
+    "수정과 상설화: inline constraint로 data를 고정하고(data 100% 회복), smoke 실구동 검사와 -DataCovMin 하한(85%)으로 재발을 자동 차단한다."
+  ],
+  nodes: [
+    { id: "clue", title: "단서", text: "data 71.4% 고정", x: 3, y: 15, w: 17, h: 13, tone: "violet" },
+    { id: "trace", title: "로그 대조", text: "Payload vs [DRV] 구동값", x: 23, y: 15, w: 18, h: 13, tone: "amber" },
+    { id: "cause", title: "원인", text: "randomize(args) 전체 재추출", x: 44, y: 15, w: 17, h: 13, tone: "rose" },
+    { id: "fix", title: "수정", text: "inline constraint 고정", x: 64, y: 15, w: 15, h: 13, tone: "blue" },
+    { id: "recover", title: "회복", text: "data coverage 100%", x: 82, y: 15, w: 15, h: 13, tone: "green" },
+    { id: "silence", title: "scoreboard의 침묵", text: "expected가 오염값 복사", x: 78, y: 59, w: 18, h: 13, tone: "slate" },
+    { id: "smoke", title: "smoke 실구동 검사", text: "0x48 구동 확인", x: 51, y: 59, w: 21, h: 13, tone: "teal" },
+    { id: "floor", title: "-DataCovMin 하한", text: "고정 payload 최소선 85%", x: 23, y: 55, w: 20, h: 13, tone: "cyan" }
+  ],
+  wires: [
+    { id: "clue_trace", from: "clue", to: "trace" },
+    { id: "trace_cause", from: "trace", to: "cause" },
+    { id: "cause_fix", from: "cause", to: "fix" },
+    { id: "fix_recover", from: "fix", to: "recover" },
+    { id: "cause_silence", from: "cause", to: "silence" },
+    { id: "silence_smoke", from: "silence", to: "smoke" },
+    { id: "smoke_floor", from: "smoke", to: "floor" },
+    { id: "floor_clue", from: "floor", to: "clue" }
+  ],
+  steps: [
+    {
+      title: "단서 수집과 로그 대조",
+      body: "seed와 byte 수를 바꿔도 data coverage가 71.4%(5/7 bins)에 고정된다. pattern이 55/aa를 구동한다고 믿었지만 bins는 0 hit다. 로그에서 [TEST] Payload bytes와 [DRV] driving req를 대조하면 smoke case가 0x48이 아니라 랜덤 값을 구동하고 있다.",
+      activeNodes: ["clue", "trace"],
+      activeWires: ["clue_trace"],
+      code: "# [TEST] Payload bytes: 48 65 6c 6c 6f\n# [DRV] driving req: 0x00 gap=581   <- 0x48이 아니다!",
+      packetWire: "clue_trace",
+      packet: "0x00?!"
+    },
+    {
+      title: "원인: randomize 인자 목록의 의미론",
+      body: "XSim의 인자 목록 randomize(idle_gap)는 나열한 필드만 뽑지 않고 rand 필드 전체를 다시 뽑는다. 미리 대입한 data가 덮여 고정 payload가 랜덤으로 대체됐다. 이 버그는 m02에서 생겨 4단계 동안 어떤 검사에도 걸리지 않았다.",
+      activeNodes: ["trace", "cause"],
+      activeWires: ["trace_cause"],
+      code: "req_item.data = payload[r_ByteIdx];   // 대입해도\nif (!req_item.randomize(idle_gap))    // 여기서 data가 덮인다",
+      packetWire: "trace_cause",
+      packet: "root"
+    },
+    {
+      title: "scoreboard는 왜 침묵했나",
+      body: "sequence의 expected item이 randomize 이후의 req_item.data를 복사하므로, 오염된 값이 기대값과 실측값 양쪽에 똑같이 실렸다. self-checking 구조가 자극 훼손을 함께 숨긴 것이다. '무엇을 쳤는가'를 따로 계량한 coverage만이 구멍을 드러냈다.",
+      activeNodes: ["cause", "silence"],
+      activeWires: ["cause_silence"],
+      code: "expected_item.data = req_item.data;  // 오염값이 그대로 기대값이 된다\n// scoreboard: PASS (expected == actual, 둘 다 오염)",
+      packetWire: "cause_silence",
+      packet: "quiet"
+    },
+    {
+      title: "수정과 재발 차단의 상설화",
+      body: "inline constraint로 data를 payload 값에 고정하면 data coverage가 100%로 회복된다. smoke가 0x48을 실제 구동하는지 검사하고, 고정 payload가 결정적으로 보장하는 bins 최소선(85.7%)을 근거로 -DataCovMin 하한을 스크립트에 상설화한다. 같은 계열의 자극 훼손은 이제 자동으로 실패한다.",
+      activeNodes: ["fix", "recover", "smoke", "floor"],
+      activeWires: ["cause_fix", "fix_recover", "silence_smoke", "smoke_floor"],
+      code: "if (!req_item.randomize() with { data == payload[r_ByteIdx]; })\n    `uvm_fatal(\"RANDFAIL\", ...)\n# UART_TX_VERIF_COVERAGE data=100.0% (회복)",
+      packetWire: "fix_recover",
+      packet: "100%"
+    }
+  ],
+  snippet: "uvc/uart_tx/uart_tx_sequence.sv / sim/run_xsim.ps1",
+  payload: ["48", "65", "6c", "6c", "6f"]
+};
+</script>
+<script src="../stage_flow.js"></script>
+</body>
+</html>

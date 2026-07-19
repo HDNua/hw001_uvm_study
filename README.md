@@ -269,7 +269,9 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 │   └── (m01과 같은 단계 구성)
 ├── m05_sva/
 │   └── (m01과 같은 단계 구성)
-└── m06_coverage/
+├── m06_coverage/
+│   └── (m01과 같은 단계 구성)
+└── m07_stim_debug/
     └── (m01과 같은 단계 구성)
 ```
 
@@ -279,6 +281,7 @@ UART TX를 시작으로 RTL 검증 구조를 단계별로 확장하는 학습용
 - `m04_mid_reset`: test가 프레임 중간에 리셋을 주입하는 case를 추가해 monitor의 capture abort·재동기화, scoreboard의 in-flight expected 제외(on_reset), driver의 리셋 해제 대기까지 복구 경로를 검증하는 단계 (`NUM_BYTES >= 2` 필요)
 - `m05_sva`: interface가 idle serial, start/stop bit 폭, ready 프레임 타이밍 속성 4개를 SVA로 상시 감시하고 monitor framing 검사를 error로 승격한 단계. scoreboard(데이터 값)와 SVA(프로토콜 파형)가 상보적 감시망을 이룬다
 - `m06_coverage`: driver가 실제 구동한 request item을 `req_ap`로 publish하고 coverage subscriber가 data/gap/busy coverpoint와 data×gap cross를 sample하는 단계. 실행 스크립트가 coverage 요약을 파싱해 최소 목표(`-CovMin`, 기본 70%)를 검사하며, `-NumBytes`를 늘려 cross coverage가 오르는 closure 루프를 체험할 수 있다. 이 단계의 측정은 data coverage가 71.4%에 고정되는 의문을 남긴다
+- `m07_stim_debug`: m06의 단서를 로그 대조로 추적해 인자 목록 `randomize(idle_gap)`가 고정 payload를 덮던 자극 버그(m02부터 잠복)를 찾아 inline constraint로 교정하는 단계. expected가 randomize 이후 값을 복사해 scoreboard가 침묵한 이유를 해부하고, smoke 실구동 검사와 고정 payload가 보장하는 data coverage 하한(`-DataCovMin`, 기본 85%)을 상설화해 같은 계열의 자극 훼손이 자동으로 잡히게 한다. 수정 후 data coverage는 100%로 회복된다
 
 ## 필요 환경
 
@@ -351,6 +354,7 @@ cd .\260329_uart\m2_uart_tx_verif\m01_seed_param\sim
 - `260329_uart/m2_uart_tx_verif/m04_mid_reset/stage_flow_demo.html`
 - `260329_uart/m2_uart_tx_verif/m05_sva/stage_flow_demo.html`
 - `260329_uart/m2_uart_tx_verif/m06_coverage/stage_flow_demo.html`
+- `260329_uart/m2_uart_tx_verif/m07_stim_debug/stage_flow_demo.html`
 
 각 데모는 외부 웹 폰트 없이 로컬 시스템 글꼴만 사용합니다.
 
